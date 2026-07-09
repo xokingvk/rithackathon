@@ -237,21 +237,104 @@ function initCsvUpload() {
 function initManualForm() {
   const form   = document.getElementById('manual-form');
   const result = document.getElementById('manual-result');
+  const detailCard = document.getElementById('manual-detail-card');
   if (!form) return;
+  
+  let currentBatteryId = '';
+  
   form.addEventListener('submit', async e => {
     e.preventDefault();
     const payload = Object.fromEntries(new FormData(form).entries());
     ['voltage', 'current', 'temperature', 'cycle_count', 'soc'].forEach(k => {
       if (payload[k] !== '') payload[k] = Number(payload[k]);
     });
-    result.textContent = 'Submitting reading…';
+    result.textContent = 'Analyzing and scoring BMS reading…';
+    detailCard?.classList.add('hidden');
+    
     try {
       const data = await api.submitManualEntry(payload);
-      result.innerHTML = `<span class="text-[var(--volt-high)] font-semibold">✓ Recorded.</span> Estimated SoH: <strong>${data.soh}%</strong> · RUL: <strong>${data.rul_cycles} cycles</strong> · Status: <strong>${data.status}</strong>`;
-      showToast(`Entry recorded for ${data.battery_id}. SoH: ${data.soh}%`, 'success');
+      currentBatteryId = data.battery_id;
+      
+      // Update result status message
+      result.innerHTML = `<span class="text-[var(--volt-high)] font-semibold">✓ Recorded.</span> Diagnostics generated.`;
+      
+      // Populate detail panel elements
+      const sohVal = document.getElementById('detail-soh-val');
+      const rulVal = document.getElementById('detail-rul-val');
+      const effVal = document.getElementById('detail-eff-val');
+      const statusBadge = document.getElementById('detail-status-badge');
+      const statusDesc = document.getElementById('detail-status-desc');
+      const needle = document.getElementById('gauge-needle');
+      const notes = document.getElementById('detail-inference-notes');
+      
+      if (sohVal) sohVal.textContent = `${data.soh}%`;
+      if (rulVal) rulVal.textContent = `${data.rul_cycles} cycles`;
+      if (effVal) effVal.textContent = `${data.charging_efficiency}%`;
+      
+      // Rotate gauge needle (SOH range 0-100 maps to -90 to +90 degrees)
+      if (needle) {
+        const rotationAngle = -90 + (data.soh / 100) * 180;
+        needle.style.transform = `rotate(${rotationAngle}deg)`;
+      }
+      
+      // Status classifications and text updates
+      if (statusBadge) {
+        statusBadge.textContent = data.status;
+        statusBadge.className = `px-3 py-1 text-[10px] font-bold rounded-full uppercase `;
+        
+        if (data.status === 'healthy') {
+          statusBadge.classList.add('bg-green-500/15', 'text-green-400');
+          if (statusDesc) statusDesc.textContent = 'Excellent state of health. Battery is functioning within parameters.';
+          if (notes) notes.textContent = `The ML models indicate high capacity retention and low fade rates. Recommended for normal field operations.`;
+        } else if (data.status === 'watch') {
+          statusBadge.classList.add('bg-amber-500/15', 'text-amber-400');
+          if (statusDesc) statusDesc.textContent = 'Moderate degradation detected. Monitor pack parameters closely.';
+          if (notes) notes.textContent = `Slight deviation in charge capacity fade detected. Keep charging temperatures under 35°C to preserve lifetime cycles.`;
+        } else {
+          statusBadge.classList.add('bg-red-500/15', 'text-red-400');
+          if (statusDesc) statusDesc.textContent = 'Critical health alert! Heavy degradation and potential anomaly.';
+          if (notes) notes.textContent = `At-risk alert triggered by Isolation Forest (anomaly score exceeded threshold). Immediate field replacement is highly recommended.`;
+        }
+      }
+      
+      // Show details block
+      detailCard?.classList.remove('hidden');
+      confettiBurst();
+      showToast(`Diagnostics generated for ${data.battery_id}!`, 'success');
+      
     } catch (err) {
-      result.textContent = `Couldn't submit: ${err.message}`;
-      showToast('Submission failed. Check the API is running.', 'error');
+      result.textContent = `Inference failed: ${err.message}`;
+      showToast('Submission failed. Check backend connectivity.', 'error');
+    }
+  });
+
+  // Report Download handler
+  const downloadBtn = document.getElementById('download-manual-report-btn');
+  downloadBtn?.addEventListener('click', async () => {
+    if (!currentBatteryId) return;
+    try {
+      showToast('Compiling analytical PDF report…', 'info', 2500);
+      downloadBtn.disabled = true;
+      downloadBtn.innerHTML = `<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Generating…`;
+      if (window.lucide) lucide.createIcons({ nodes: [downloadBtn] });
+
+      const report = await api.generateReport(currentBatteryId);
+      const blob = await api.downloadReport(report.report_id);
+      
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `HealthReport_${currentBatteryId}.pdf`;
+      a.click();
+      URL.revokeObjectURL(url);
+      
+      showToast('PDF downloaded successfully!', 'success');
+    } catch (err) {
+      showToast(`Failed to download report: ${err.message}`, 'error');
+    } finally {
+      downloadBtn.disabled = false;
+      downloadBtn.innerHTML = `<i data-lucide="download" class="w-4 h-4"></i> Download PDF`;
+      if (window.lucide) lucide.createIcons({ nodes: [downloadBtn] });
     }
   });
 }
