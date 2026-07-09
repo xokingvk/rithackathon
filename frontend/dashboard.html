@@ -1,0 +1,302 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — VoltaicIQ Battery Analytics</title>
+<meta name="description" content="Real-time battery fleet analytics — SoH trends, RUL predictions, charging efficiency, and report history." />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/lucide.min.js"></script>
+<script src="js/chart.umd.min.js"></script>
+<link rel="stylesheet" href="css/style.css" />
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['"IBM Plex Mono"', 'monospace'] }
+      }
+    }
+  }
+</script>
+</head>
+<body class="dash-body" data-page="dashboard">
+
+<!-- Sidebar overlay (mobile) -->
+<div id="dash-overlay" class="dash-overlay"></div>
+
+<div class="flex min-h-screen">
+
+  <!-- ===================== SIDEBAR ===================== -->
+  <aside class="dash-sidebar flex flex-col w-64 shrink-0 p-5 z-80">
+    <!-- Logo -->
+    <div class="flex items-center justify-between mb-8 px-1">
+      <a href="index.html" class="flex items-center gap-2.5 font-bold text-[15px]">
+        <span class="h-[22px] w-[34px] rounded-[4px] border-[2.5px] border-[var(--ink)] relative flex items-center overflow-hidden">
+          <span class="block h-full bg-gradient-to-r from-[var(--volt-mid)] to-[var(--volt-high)]" style="width:72%"></span>
+        </span>
+        Voltaic<span class="text-[var(--ink-faint)] font-normal">IQ</span>
+      </a>
+      <button id="sidebar-close" class="lg:hidden text-[var(--ink-soft)] hover:text-[var(--ink)] p-1" style="background:none;border:none;cursor:pointer;">
+        <i data-lucide="x" class="w-4 h-4"></i>
+      </button>
+    </div>
+
+    <!-- Nav -->
+    <nav class="flex flex-col gap-1 text-sm">
+      <p class="dash-section-label mt-2 mb-1">Analytics</p>
+      <a href="#overview" class="sidebar-link is-active px-3 py-2.5 flex items-center gap-3 rounded-lg">
+        <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview
+      </a>
+      <a href="#trends" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
+        <i data-lucide="line-chart" class="w-4 h-4"></i> Health trends
+      </a>
+
+      <p class="dash-section-label mt-4 mb-1">Data</p>
+      <a href="#reports" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
+        <i data-lucide="file-text" class="w-4 h-4"></i> Report history
+      </a>
+      <a href="#fleet" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
+        <i data-lucide="truck" class="w-4 h-4"></i> Fleet analytics
+      </a>
+
+      <p class="dash-section-label mt-4 mb-1">Links</p>
+      <a href="index.html#upload" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
+        <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload data
+      </a>
+      <a href="http://localhost:8000/docs" target="_blank" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
+        <i data-lucide="book-open" class="w-4 h-4"></i> API docs ↗
+      </a>
+    </nav>
+
+    <!-- Bottom CTA -->
+    <div class="mt-auto pt-6 border-t border-[var(--border)]">
+      <a href="index.html#upload" class="btn btn-accent btn-sm w-full justify-center">
+        <i data-lucide="plus" class="w-3.5 h-3.5"></i> New analysis
+      </a>
+      <div class="mt-4 px-1">
+        <div class="flex items-center gap-2 text-xs text-[var(--ink-faint)]">
+          <span class="inline-block w-2 h-2 rounded-full bg-[var(--volt-high)]" style="box-shadow:0 0 0 3px rgba(34,197,94,0.18)"></span>
+          Backend connected
+        </div>
+        <p class="text-[10px] text-[var(--ink-faint)] mt-1">Auto-refreshes every 60s</p>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ===================== MAIN CONTENT ===================== -->
+  <main class="flex-1 min-w-0 flex flex-col">
+
+    <!-- Top bar -->
+    <div class="sticky top-0 z-40 bg-[var(--bg)]/90 backdrop-blur-md border-b border-[var(--border)]">
+      <div class="px-6 lg:px-10 h-16 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-3">
+          <!-- Mobile hamburger -->
+          <button id="sidebar-open" class="lg:hidden p-2 text-[var(--ink-soft)] hover:text-[var(--ink)] -ml-2"
+            style="background:none;border:none;cursor:pointer;">
+            <i data-lucide="menu" class="w-5 h-5"></i>
+          </button>
+          <div>
+            <h1 class="font-semibold text-[15px] leading-tight">Fleet overview</h1>
+            <p class="text-xs text-[var(--ink-faint)] hidden sm:block">Live analytics across all connected battery packs</p>
+          </div>
+        </div>
+
+        <div class="flex items-center gap-2.5">
+          <select id="battery-select"
+            class="text-sm border border-[var(--border-strong)] rounded-lg px-3 py-1.5 bg-[var(--surface)] focus:outline-none focus:border-[var(--accent)] transition-colors hidden sm:block">
+            <option value="">All batteries</option>
+          </select>
+          <button id="refresh-btn" class="btn btn-ghost btn-sm gap-2">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i>
+            <span class="hidden sm:inline">Refresh</span>
+          </button>
+          <a href="index.html" class="btn btn-ghost btn-sm gap-2 hidden md:inline-flex">
+            <i data-lucide="arrow-left" class="w-3.5 h-3.5"></i> Home
+          </a>
+        </div>
+      </div>
+    </div>
+
+    <!-- Content area -->
+    <div class="px-6 lg:px-10 py-8 max-w-[1280px] flex-1">
+
+      <!-- Alert container -->
+      <div id="alert-container"></div>
+
+      <!-- ======= KPI CARDS ======= -->
+      <section id="overview" class="grid sm:grid-cols-2 xl:grid-cols-4 gap-4 mb-6">
+
+        <!-- SoH -->
+        <div class="dash-card kpi-card p-5">
+          <div class="flex items-center justify-between mb-5">
+            <p class="text-xs font-semibold uppercase tracking-widest dash-card-muted">Avg. SoH</p>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(59,91,255,0.15)">
+              <i data-lucide="battery-charging" class="w-4 h-4 text-[var(--accent)]"></i>
+            </div>
+          </div>
+          <p class="kpi-value text-[32px]" id="kpi-soh">—</p>
+          <p class="chip chip-good mt-3 text-[11px]" id="kpi-soh-delta">—</p>
+        </div>
+
+        <!-- RUL -->
+        <div class="dash-card kpi-card p-5">
+          <div class="flex items-center justify-between mb-5">
+            <p class="text-xs font-semibold uppercase tracking-widest dash-card-muted">Avg. RUL</p>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(245,158,11,0.15)">
+              <i data-lucide="hourglass" class="w-4 h-4 text-[var(--volt-mid)]"></i>
+            </div>
+          </div>
+          <p class="kpi-value text-[32px]" id="kpi-rul">—</p>
+          <p class="text-[11px] dash-card-muted mt-1.5">cycles remaining</p>
+          <p class="chip chip-warn mt-2 text-[11px]" id="kpi-rul-delta">—</p>
+        </div>
+
+        <!-- Charging -->
+        <div class="dash-card kpi-card p-5">
+          <div class="flex items-center justify-between mb-5">
+            <p class="text-xs font-semibold uppercase tracking-widest dash-card-muted">Charging eff.</p>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(34,197,94,0.15)">
+              <i data-lucide="zap" class="w-4 h-4 text-[var(--volt-high)]"></i>
+            </div>
+          </div>
+          <p class="kpi-value text-[32px]" id="kpi-charging">—</p>
+          <p class="chip chip-good mt-3 text-[11px]" id="kpi-charging-delta">—</p>
+        </div>
+
+        <!-- Flagged -->
+        <div class="dash-card kpi-card p-5">
+          <div class="flex items-center justify-between mb-5">
+            <p class="text-xs font-semibold uppercase tracking-widest dash-card-muted">Packs flagged</p>
+            <div class="w-8 h-8 rounded-lg flex items-center justify-center" style="background:rgba(239,68,68,0.15)">
+              <i data-lucide="alert-triangle" class="w-4 h-4 text-[var(--volt-low)]"></i>
+            </div>
+          </div>
+          <p class="kpi-value text-[32px] text-[#F87171]" id="kpi-flagged">—</p>
+          <p class="chip chip-bad mt-3 text-[11px]" id="kpi-flagged-delta">—</p>
+        </div>
+
+      </section>
+
+      <!-- ======= CHARTS ROW 1 ======= -->
+      <section id="trends" class="grid lg:grid-cols-3 gap-4 mb-4">
+
+        <!-- SoH trend (spans 2 cols) -->
+        <div class="dash-card p-5 lg:col-span-2">
+          <div class="flex items-center justify-between mb-5">
+            <div>
+              <p class="font-semibold text-sm">State-of-health trend</p>
+              <p class="text-xs dash-card-muted mt-0.5">Rolling estimate across recent cycles</p>
+            </div>
+            <div class="flex items-center gap-2">
+              <span class="inline-flex items-center gap-1.5 text-xs dash-card-muted">
+                <span class="w-3 h-0.5 bg-[var(--accent)] inline-block rounded"></span> SoH
+              </span>
+            </div>
+          </div>
+          <div class="h-64"><canvas id="chart-soh"></canvas></div>
+        </div>
+
+        <!-- Fleet distribution -->
+        <div class="dash-card p-5">
+          <p class="font-semibold text-sm mb-0.5">Fleet health distribution</p>
+          <p class="text-xs dash-card-muted mb-4">Healthy · Watch · At-risk</p>
+          <div class="h-56"><canvas id="chart-fleet-dist"></canvas></div>
+        </div>
+
+      </section>
+
+      <!-- ======= CHARTS ROW 2 ======= -->
+      <section class="grid lg:grid-cols-2 gap-4 mb-6">
+
+        <!-- Degradation -->
+        <div class="dash-card p-5">
+          <p class="font-semibold text-sm mb-0.5">Degradation: observed vs. predicted</p>
+          <p class="text-xs dash-card-muted mb-4">Remaining useful life model output</p>
+          <div class="h-60"><canvas id="chart-degradation"></canvas></div>
+        </div>
+
+        <!-- Charging efficiency -->
+        <div class="dash-card p-5">
+          <p class="font-semibold text-sm mb-0.5">Charging efficiency by pack</p>
+          <p class="text-xs dash-card-muted mb-4">Green ≥90% · amber ≥75% · red below</p>
+          <div class="h-60"><canvas id="chart-charging"></canvas></div>
+        </div>
+
+      </section>
+
+      <!-- ======= REPORT HISTORY ======= -->
+      <section id="reports" class="dash-card mb-4">
+        <div class="flex items-center justify-between p-5 border-b border-[var(--dark-border)]">
+          <div>
+            <p class="font-semibold text-sm">Report history</p>
+            <p class="text-xs dash-card-muted mt-0.5">Generated health & RUL reports — download as PDF</p>
+          </div>
+          <a href="index.html#upload"
+            class="btn btn-ghost btn-sm gap-1.5 text-[var(--dark-ink-soft)] border-[var(--dark-border)] hover:text-[var(--dark-ink)]">
+            <i data-lucide="plus" class="w-3.5 h-3.5"></i> New report
+          </a>
+        </div>
+        <div class="overflow-x-auto p-5 pt-2">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Battery ID</th>
+                <th>Generated</th>
+                <th>SoH</th>
+                <th>RUL</th>
+                <th>Status</th>
+                <th class="text-right">Report</th>
+              </tr>
+            </thead>
+            <tbody id="reports-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+      <!-- ======= FLEET ANALYTICS ======= -->
+      <section id="fleet" class="dash-card mb-10">
+        <div class="flex items-center justify-between p-5 border-b border-[var(--dark-border)]">
+          <div>
+            <p class="font-semibold text-sm">Fleet analytics</p>
+            <p class="text-xs dash-card-muted mt-0.5">All registered packs, ranked by SoH</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <span class="text-xs dash-card-muted hidden sm:inline">Click "Report" to generate a fresh PDF</span>
+          </div>
+        </div>
+        <div class="overflow-x-auto p-5 pt-2">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Battery ID</th>
+                <th>SoH</th>
+                <th>Cycles</th>
+                <th>RUL (cycles)</th>
+                <th>Charging eff.</th>
+                <th>Status</th>
+                <th class="text-right">Action</th>
+              </tr>
+            </thead>
+            <tbody id="fleet-table"></tbody>
+          </table>
+        </div>
+      </section>
+
+    </div><!-- end content area -->
+  </main>
+</div>
+
+<!-- Chatbot (injected) -->
+<div data-component="chatbot"></div>
+
+<script src="js/components.js?v=2"></script>
+<script src="js/api.js?v=2"></script>
+<script src="js/charts.js?v=2"></script>
+<script src="js/chatbot.js?v=2"></script>
+<script src="js/dashboard.js?v=2"></script>
+</body>
+</html>

@@ -1,0 +1,571 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>VoltaicIQ — AI Battery Health Analytics Platform</title>
+<meta name="description" content="Predict battery state of health, remaining useful life, and charging efficiency from your usage data. Real-time fleet analytics for EV, grid storage, and IoT devices." />
+<meta property="og:title" content="VoltaicIQ — AI Battery Health Analytics" />
+<meta property="og:description" content="Predictive SoH, RUL, and charging efficiency powered by XGBoost + Groq AI." />
+<meta name="theme-color" content="#3B5BFF" />
+
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="js/lucide.min.js"></script>
+<link rel="stylesheet" href="css/style.css" />
+
+<script>
+  tailwind.config = {
+    theme: {
+      extend: {
+        fontFamily: { sans: ['Inter', 'system-ui', 'sans-serif'], mono: ['"IBM Plex Mono"', 'monospace'] },
+      }
+    }
+  }
+</script>
+</head>
+<body data-page="landing">
+
+<!-- Scroll progress bar -->
+<div id="scroll-progress"></div>
+
+<!-- Navbar (injected by components.js) -->
+<div data-component="navbar"></div>
+
+<!-- ========================== HERO ========================== -->
+<header class="relative overflow-hidden">
+  <!-- Animated background -->
+  <div class="hero-bg">
+    <div class="hero-grid"></div>
+  </div>
+  <div id="particles-container" class="hero-bg" style="z-index:1"></div>
+
+  <div class="container relative z-10 pt-24 pb-32 grid lg:grid-cols-2 gap-16 items-center">
+    <!-- Left: copy -->
+    <div class="reveal">
+      <!-- Pill badge -->
+      <div class="inline-flex items-center gap-2 bg-[var(--accent-soft)] text-[var(--accent-ink)] text-xs font-semibold tracking-wide uppercase px-3.5 py-1.5 rounded-full mb-7 border border-[rgba(59,91,255,0.15)]">
+        <i data-lucide="sparkles" class="w-3.5 h-3.5"></i>
+        AI-based predictive analytics
+      </div>
+
+      <h1 class="text-[44px] sm:text-[56px] leading-[1.04] font-extrabold tracking-tight text-[var(--ink)]">
+        Know a battery's
+        <span class="relative inline-block">
+          <span class="relative z-10 text-[var(--accent)]">real health</span>
+          <span class="absolute inset-x-0 bottom-1 h-3 bg-[var(--accent-soft)] rounded-sm -z-10 opacity-60"></span>
+        </span>,<br>before it fails.
+      </h1>
+
+      <p class="mt-6 text-lg text-[var(--ink-soft)] leading-relaxed max-w-lg">
+        VoltaicIQ turns raw charge cycles into state-of-health scores, remaining-useful-life forecasts, and charging recommendations — for a single pack or an entire fleet.
+      </p>
+
+      <div class="mt-9 flex flex-wrap items-center gap-3">
+        <a href="#upload" class="btn btn-accent text-[15px] px-6 py-3">
+          Analyze a battery <i data-lucide="arrow-right" class="w-4 h-4"></i>
+        </a>
+        <a href="dashboard.html" class="btn btn-ghost text-[15px] px-6 py-3">
+          <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Live dashboard
+        </a>
+      </div>
+
+      <!-- Trust stats -->
+      <div class="mt-10 flex flex-wrap items-center gap-8 text-sm text-[var(--ink-faint)]">
+        <div>
+          <span class="font-mono font-semibold text-xl text-[var(--ink)]"
+            data-count="98.2" data-suffix="%" data-decimals="1">98.2%</span>
+          <span class="ml-1">model accuracy</span>
+        </div>
+        <div>
+          <span class="font-mono font-semibold text-xl text-[var(--ink)]">&lt;30s</span>
+          <span class="ml-1">report turnaround</span>
+        </div>
+        <div>
+          <span class="font-mono font-semibold text-xl text-[var(--ink)]">SDG 7·9</span>
+          <span class="ml-1">aligned</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Right: animated battery cell + metrics -->
+    <div class="reveal flex flex-col items-center justify-center gap-6" style="transition-delay:.12s">
+      <div class="relative">
+        <!-- Glow ring -->
+        <div class="absolute inset-0 rounded-2xl" style="background:radial-gradient(ellipse 80% 60% at 50% 50%, rgba(59,91,255,0.16),transparent); transform:scale(1.3); filter:blur(20px);"></div>
+        <div class="battery-cell relative">
+          <div class="battery-fill" id="hero-fill"></div>
+          <div class="battery-readout"><span id="hero-readout">0%</span></div>
+        </div>
+      </div>
+      <p class="text-sm text-[var(--ink-faint)] font-mono" id="hero-caption">estimating state of health…</p>
+
+      <!-- Metric pills -->
+      <div class="battery-metrics">
+        <div class="battery-metric-pill" id="hero-metric-soh" style="opacity:0;transition:opacity .4s">
+          SoH <strong>87%</strong>
+        </div>
+        <div class="battery-metric-pill" id="hero-metric-rul" style="opacity:0;transition:opacity .4s">
+          RUL <strong>612 cyc</strong>
+        </div>
+        <div class="battery-metric-pill" id="hero-metric-eff" style="opacity:0;transition:opacity .4s">
+          Eff. <strong>91%</strong>
+        </div>
+      </div>
+
+      <!-- Floating annotation card -->
+      <div class="card px-5 py-4 flex items-center gap-4 max-w-xs w-full shadow-md"
+           style="animation: float-card 4s ease-in-out infinite;">
+        <div class="icon-tile w-9 h-9 rounded-lg shrink-0" style="background:rgba(34,197,94,0.12);color:#16A34A">
+          <i data-lucide="trending-up" class="w-4 h-4"></i>
+        </div>
+        <div>
+          <p class="text-xs font-semibold text-[var(--ink)]">Fleet health improved</p>
+          <p class="text-xs text-[var(--ink-soft)]">+3.4% SoH avg this quarter</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</header>
+
+<style>
+@keyframes float-card {
+  0%,100% { transform: translateY(0); }
+  50%      { transform: translateY(-8px); }
+}
+</style>
+
+<!-- ========================== TRUST STRIP ========================== -->
+<section class="border-y border-[var(--border)] bg-[var(--surface)]">
+  <div class="container py-5 flex flex-wrap items-center justify-center gap-x-10 gap-y-2 text-[var(--ink-faint)] text-sm font-medium">
+    <span class="flex items-center gap-2"><i data-lucide="truck" class="w-4 h-4"></i> Fleet operators</span>
+    <span class="text-[var(--border-strong)]">·</span>
+    <span class="flex items-center gap-2"><i data-lucide="zap" class="w-4 h-4"></i> EV charging networks</span>
+    <span class="text-[var(--border-strong)]">·</span>
+    <span class="flex items-center gap-2"><i data-lucide="server" class="w-4 h-4"></i> Grid storage teams</span>
+    <span class="text-[var(--border-strong)]">·</span>
+    <span class="flex items-center gap-2"><i data-lucide="cpu" class="w-4 h-4"></i> Device manufacturers</span>
+    <span class="text-[var(--border-strong)]">·</span>
+    <span class="flex items-center gap-2"><i data-lucide="leaf" class="w-4 h-4"></i> Renewable energy</span>
+  </div>
+</section>
+
+<!-- ========================== CHALLENGE STATS ========================== -->
+<section class="container py-24">
+  <div class="grid lg:grid-cols-3 gap-12">
+    <div class="reveal">
+      <h2 class="text-2xl font-bold tracking-tight mb-4">Degradation is invisible until it isn't</h2>
+      <p class="text-[var(--ink-soft)] leading-relaxed">
+        Manual monitoring can't keep pace with real usage patterns, so failures arrive as surprises — driving downtime and unplanned replacement costs.
+      </p>
+    </div>
+    <div class="lg:col-span-2 reveal" style="transition-delay:.08s">
+      <div class="stat-ticker stagger-children">
+        <div class="stat-ticker-item">
+          <p class="stat-ticker-value text-[var(--volt-low)]"
+             data-count="34" data-suffix="%">34%</p>
+          <p class="text-sm text-[var(--ink-soft)] mt-2 leading-snug">increase in unplanned downtime from undetected degradation</p>
+        </div>
+        <div class="stat-ticker-item">
+          <p class="stat-ticker-value text-[var(--volt-mid)]"
+             data-count="2.1" data-suffix="x" data-decimals="1">2.1x</p>
+          <p class="text-sm text-[var(--ink-soft)] mt-2 leading-snug">higher maintenance cost without predictive insight</p>
+        </div>
+        <div class="stat-ticker-item">
+          <p class="stat-ticker-value text-[var(--volt-high)]"
+             data-count="41" data-suffix="%">41%</p>
+          <p class="text-sm text-[var(--ink-soft)] mt-2 leading-snug">cost reduction with proactive replacement scheduling</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== FEATURES ========================== -->
+<section id="platform" class="container py-10 pb-28">
+  <div class="max-w-xl mb-14 reveal">
+    <p class="text-xs font-semibold uppercase tracking-widest text-[var(--accent-ink)] mb-3">Core capabilities</p>
+    <h2 class="text-3xl font-bold tracking-tight">A unified platform, three connected models</h2>
+    <p class="mt-4 text-[var(--ink-soft)] leading-relaxed">
+      Each feature works from the same usage data, so estimates stay consistent from health score to replacement plan.
+    </p>
+  </div>
+
+  <div class="grid md:grid-cols-3 gap-6">
+    <!-- Card 1 -->
+    <div class="card card-hover card-glow p-7 reveal">
+      <div class="icon-tile mb-5"><i data-lucide="activity" class="w-5 h-5"></i></div>
+      <h3 class="font-semibold text-lg mb-2">Battery health estimation</h3>
+      <p class="text-sm text-[var(--ink-soft)] leading-relaxed mb-5">
+        XGBoost models analyze historical usage data to produce accurate state-of-health (SoH) metrics every cycle.
+      </p>
+      <ul class="space-y-2.5 text-sm text-[var(--ink-soft)]">
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Continuous SoH scoring</li>
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Timestamped health reports</li>
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>CSV & manual BMS input</li>
+      </ul>
+    </div>
+
+    <!-- Card 2 -->
+    <div class="card card-hover card-glow p-7 reveal" style="transition-delay:.07s">
+      <div class="icon-tile mb-5" style="background:rgba(245,158,11,0.12);color:#92400E"><i data-lucide="trending-down" class="w-5 h-5"></i></div>
+      <h3 class="font-semibold text-lg mb-2">Remaining useful life</h3>
+      <p class="text-sm text-[var(--ink-soft)] leading-relaxed mb-5">
+        Predicts lifespan from degradation trends and flags packs nearing end-of-life before failure occurs.
+      </p>
+      <ul class="space-y-2.5 text-sm text-[var(--ink-soft)]">
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>End-of-life alerts</li>
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Proactive replacement scheduling</li>
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Degradation trend visualization</li>
+      </ul>
+    </div>
+
+    <!-- Card 3 -->
+    <div class="card card-hover card-glow p-7 reveal" style="transition-delay:.14s">
+      <div class="icon-tile mb-5" style="background:rgba(34,197,94,0.12);color:#15803D"><i data-lucide="zap" class="w-5 h-5"></i></div>
+      <h3 class="font-semibold text-lg mb-2">Charging efficiency analysis</h3>
+      <p class="text-sm text-[var(--ink-soft)] leading-relaxed mb-5">
+        Monitors charge cycles, detects anomalies like overcharging, and recommends optimal charging habits.
+      </p>
+      <ul class="space-y-2.5 text-sm text-[var(--ink-soft)]">
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Anomaly detection</li>
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Optimal charging guidance</li>
+        <li class="flex items-center gap-2.5"><i data-lucide="check" class="w-4 h-4 text-[var(--volt-high)] shrink-0"></i>Per-pack efficiency scores</li>
+      </ul>
+    </div>
+  </div>
+
+  <!-- Sub-feature pills -->
+  <div class="grid md:grid-cols-3 gap-4 mt-5 stagger-children">
+    <div class="card p-5 flex items-center gap-3.5 bg-[var(--accent-soft)] border-none">
+      <div class="icon-tile w-9 h-9 rounded-lg shrink-0"><i data-lucide="cloud" class="w-4 h-4"></i></div>
+      <p class="text-sm font-medium text-[var(--accent-ink)]">Cloud analytics for fleet-wide monitoring</p>
+    </div>
+    <div class="card p-5 flex items-center gap-3.5 bg-[var(--accent-soft)] border-none">
+      <div class="icon-tile w-9 h-9 rounded-lg shrink-0"><i data-lucide="settings-2" class="w-4 h-4"></i></div>
+      <p class="text-sm font-medium text-[var(--accent-ink)]">AI-optimized charging infrastructure</p>
+    </div>
+    <div class="card p-5 flex items-center gap-3.5 bg-[var(--accent-soft)] border-none">
+      <div class="icon-tile w-9 h-9 rounded-lg shrink-0"><i data-lucide="leaf" class="w-4 h-4"></i></div>
+      <p class="text-sm font-medium text-[var(--accent-ink)]">Renewable energy system integration</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== HOW IT WORKS ========================== -->
+<section class="bg-[var(--surface)] border-y border-[var(--border)]">
+  <div class="container py-24">
+    <div class="max-w-xl mb-14 reveal">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--accent-ink)] mb-3">Workflow</p>
+      <h2 class="text-3xl font-bold tracking-tight">From raw data to actionable insight in 30 seconds</h2>
+    </div>
+    <div class="grid md:grid-cols-4 gap-0 relative">
+      <!-- Connector line -->
+      <div class="hidden md:block absolute top-[22px] left-[12.5%] right-[12.5%] h-px bg-[var(--border)] z-0"></div>
+
+      <div class="reveal flex flex-col items-center text-center px-4 pb-8">
+        <div class="step-number mb-4 relative z-10">01</div>
+        <i data-lucide="upload-cloud" class="w-6 h-6 text-[var(--ink-faint)] mb-3"></i>
+        <h3 class="font-semibold text-sm mb-2">Upload or enter data</h3>
+        <p class="text-xs text-[var(--ink-soft)] leading-relaxed">Drop a CSV or submit live BMS readings directly</p>
+      </div>
+      <div class="reveal flex flex-col items-center text-center px-4 pb-8" style="transition-delay:.07s">
+        <div class="step-number mb-4 relative z-10">02</div>
+        <i data-lucide="cpu" class="w-6 h-6 text-[var(--ink-faint)] mb-3"></i>
+        <h3 class="font-semibold text-sm mb-2">ML models score the pack</h3>
+        <p class="text-xs text-[var(--ink-soft)] leading-relaxed">XGBoost runs SoH, RUL, and efficiency predictions</p>
+      </div>
+      <div class="reveal flex flex-col items-center text-center px-4 pb-8" style="transition-delay:.14s">
+        <div class="step-number mb-4 relative z-10">03</div>
+        <i data-lucide="file-text" class="w-6 h-6 text-[var(--ink-faint)] mb-3"></i>
+        <h3 class="font-semibold text-sm mb-2">Report generated</h3>
+        <p class="text-xs text-[var(--ink-soft)] leading-relaxed">Timestamped PDF report saved to your dashboard</p>
+      </div>
+      <div class="reveal flex flex-col items-center text-center px-4 pb-8" style="transition-delay:.21s">
+        <div class="step-number mb-4 relative z-10">04</div>
+        <i data-lucide="bell" class="w-6 h-6 text-[var(--ink-faint)] mb-3"></i>
+        <h3 class="font-semibold text-sm mb-2">Act on insights</h3>
+        <p class="text-xs text-[var(--ink-soft)] leading-relaxed">Get alerts, recommendations, and schedule maintenance</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== UPLOAD / MANUAL ENTRY ========================== -->
+<section id="upload" class="bg-[var(--bg)]">
+  <div class="container py-24">
+    <div class="max-w-xl mb-12 reveal">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--accent-ink)] mb-3">Get started</p>
+      <h2 class="text-3xl font-bold tracking-tight">Bring your own data</h2>
+      <p class="mt-4 text-[var(--ink-soft)] leading-relaxed">
+        Upload a usage-history CSV, or enter live readings straight from your BMS. Either path feeds the same estimation pipeline.
+      </p>
+    </div>
+
+    <!-- Tabs -->
+    <div class="flex gap-6 mb-8 border-b border-[var(--border)]" role="tablist">
+      <button class="tab-btn is-active" data-tab="csv" role="tab">
+        <span class="flex items-center gap-2"><i data-lucide="file-up" class="w-4 h-4"></i> CSV upload</span>
+      </button>
+      <button class="tab-btn" data-tab="manual" role="tab">
+        <span class="flex items-center gap-2"><i data-lucide="edit-3" class="w-4 h-4"></i> Manual BMS entry</span>
+      </button>
+    </div>
+
+    <!-- CSV panel -->
+    <div id="panel-csv" class="grid lg:grid-cols-5 gap-8 reveal">
+      <form id="csv-form" class="lg:col-span-3 dropzone p-10 flex flex-col items-center justify-center text-center gap-5" data-dropzone>
+        <div class="icon-tile w-14 h-14 rounded-xl">
+          <i data-lucide="upload-cloud" class="w-6 h-6"></i>
+        </div>
+        <div>
+          <p class="font-semibold text-base">Drop your CSV here</p>
+          <p class="text-sm text-[var(--ink-soft)] mt-1">Columns: <code class="font-mono bg-[var(--bg)] px-1.5 py-0.5 rounded text-xs">timestamp, voltage, current, temperature, cycle_count</code></p>
+        </div>
+        <div class="flex flex-wrap items-center justify-center gap-3">
+          <label class="btn btn-ghost btn-sm cursor-pointer">
+            <i data-lucide="folder-open" class="w-3.5 h-3.5"></i> Browse files
+            <input id="csv-input" type="file" accept=".csv" class="hidden" />
+          </label>
+          <a href="http://localhost:8000/api/battery/template.csv" class="btn btn-ghost btn-sm text-[var(--ink-faint)]">
+            <i data-lucide="download" class="w-3.5 h-3.5"></i> Template
+          </a>
+        </div>
+        <p id="csv-filename" class="text-xs text-[var(--ink-faint)] font-mono min-h-[16px]"></p>
+        <!-- Battery ID for CSV -->
+        <div class="w-full max-w-xs">
+          <label class="text-xs font-medium text-[var(--ink-soft)] block mb-1.5">Battery ID <span class="text-[var(--ink-faint)]">(optional)</span></label>
+          <input id="csv-battery-id" type="text"
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)]"
+            placeholder="PACK-0142 (auto-generated if blank)" />
+        </div>
+        <button type="submit" id="csv-submit" class="btn btn-accent">
+          <i data-lucide="cpu" class="w-4 h-4"></i> Upload &amp; analyze
+        </button>
+      </form>
+
+      <div class="lg:col-span-2 flex flex-col gap-5">
+        <div class="card p-6">
+          <p class="text-sm font-semibold mb-4 flex items-center gap-2">
+            <i data-lucide="info" class="w-4 h-4 text-[var(--accent)]"></i> What happens next
+          </p>
+          <ol class="space-y-4 text-sm text-[var(--ink-soft)]">
+            <li class="flex gap-3">
+              <span class="font-mono text-[var(--accent)] font-semibold shrink-0">01</span>
+              <span>Your CSV is parsed, validated, and stored server-side.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="font-mono text-[var(--accent)] font-semibold shrink-0">02</span>
+              <span>SoH, RUL, and charging models score each pack reading.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="font-mono text-[var(--accent)] font-semibold shrink-0">03</span>
+              <span>A timestamped PDF report appears in your dashboard.</span>
+            </li>
+            <li class="flex gap-3">
+              <span class="font-mono text-[var(--accent)] font-semibold shrink-0">04</span>
+              <span>Ask the AI assistant to explain any findings.</span>
+            </li>
+          </ol>
+          <div id="csv-result" class="mt-5 text-sm"></div>
+        </div>
+
+        <!-- Sample columns reference -->
+        <div class="card p-5 bg-[var(--ink)] text-[var(--dark-ink)] border-none">
+          <p class="text-xs font-semibold uppercase tracking-widest opacity-60 mb-3">Expected CSV columns</p>
+          <div class="space-y-1.5 font-mono text-xs opacity-80">
+            <div class="flex gap-3"><span class="text-[var(--volt-mid)] w-28">timestamp</span><span>2025-01-01 00:00:00</span></div>
+            <div class="flex gap-3"><span class="text-[var(--volt-high)] w-28">voltage</span><span>3.72 <span class="opacity-50">(V)</span></span></div>
+            <div class="flex gap-3"><span class="text-[var(--volt-high)] w-28">current</span><span>1.85 <span class="opacity-50">(A)</span></span></div>
+            <div class="flex gap-3"><span class="text-[var(--volt-high)] w-28">temperature</span><span>28.4 <span class="opacity-50">(°C)</span></span></div>
+            <div class="flex gap-3"><span class="text-[var(--volt-high)] w-28">cycle_count</span><span>412</span></div>
+            <div class="flex gap-3"><span class="text-[var(--volt-mid)] w-28">soc</span><span>76 <span class="opacity-50">(optional %)</span></span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Manual panel -->
+    <form id="manual-form" class="hidden card p-8 reveal">
+      <div class="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+        <div>
+          <label class="text-xs font-semibold text-[var(--ink-soft)] block mb-1.5">Battery ID *</label>
+          <input name="battery_id" required
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)] transition-colors"
+            placeholder="PACK-0142" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-[var(--ink-soft)] block mb-1.5">Voltage (V) *</label>
+          <input name="voltage" type="number" step="0.01" min="0" max="5" required
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)] transition-colors"
+            placeholder="3.72" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-[var(--ink-soft)] block mb-1.5">Current (A) *</label>
+          <input name="current" type="number" step="0.01" required
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)] transition-colors"
+            placeholder="1.85" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-[var(--ink-soft)] block mb-1.5">Temperature (°C) *</label>
+          <input name="temperature" type="number" step="0.1" required
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)] transition-colors"
+            placeholder="28.4" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-[var(--ink-soft)] block mb-1.5">Cycle count *</label>
+          <input name="cycle_count" type="number" min="0" required
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)] transition-colors"
+            placeholder="412" />
+        </div>
+        <div>
+          <label class="text-xs font-semibold text-[var(--ink-soft)] block mb-1.5">State of charge (%)</label>
+          <input name="soc" type="number" step="0.1" min="0" max="100"
+            class="w-full border border-[var(--border-strong)] rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--surface)] transition-colors"
+            placeholder="76" />
+        </div>
+      </div>
+      <div class="flex items-center justify-between mt-6 pt-5 border-t border-[var(--border)]">
+        <p id="manual-result" class="text-sm text-[var(--ink-soft)] flex-1 mr-4"></p>
+        <button type="submit" class="btn btn-accent shrink-0">
+          <i data-lucide="send" class="w-4 h-4"></i> Submit reading
+        </button>
+      </div>
+    </form>
+  </div>
+</section>
+
+<!-- ========================== TESTIMONIALS ========================== -->
+<section class="bg-[var(--surface)] border-y border-[var(--border)]">
+  <div class="container py-24">
+    <div class="max-w-xl mb-14 reveal">
+      <p class="text-xs font-semibold uppercase tracking-widest text-[var(--accent-ink)] mb-3">Trusted by teams</p>
+      <h2 class="text-3xl font-bold tracking-tight">Built for real operational demands</h2>
+    </div>
+    <div class="grid md:grid-cols-3 gap-6 stagger-children">
+      <div class="testimonial-card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="testimonial-avatar" style="background:linear-gradient(135deg,#3B5BFF,#8B5CF6)">M</div>
+          <div>
+            <p class="font-semibold text-sm">Maya R.</p>
+            <p class="text-xs text-[var(--ink-faint)]">Fleet Manager, EV Operator</p>
+          </div>
+        </div>
+        <p class="text-sm text-[var(--ink-soft)] leading-relaxed">
+          "We caught three packs heading toward failure two months early. The RUL projection is eerily accurate for our usage patterns."
+        </p>
+      </div>
+      <div class="testimonial-card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="testimonial-avatar" style="background:linear-gradient(135deg,#F59E0B,#EF4444)">D</div>
+          <div>
+            <p class="font-semibold text-sm">David K.</p>
+            <p class="text-xs text-[var(--ink-faint)]">CTO, Grid Storage Startup</p>
+          </div>
+        </div>
+        <p class="text-sm text-[var(--ink-soft)] leading-relaxed">
+          "The CSV upload is dead simple — we piped it straight from our BMS export. Had our first SoH trend chart in under a minute."
+        </p>
+      </div>
+      <div class="testimonial-card">
+        <div class="flex items-center gap-3 mb-4">
+          <div class="testimonial-avatar" style="background:linear-gradient(135deg,#22C55E,#3B5BFF)">S</div>
+          <div>
+            <p class="font-semibold text-sm">Sunita P.</p>
+            <p class="text-xs text-[var(--ink-faint)]">R&D Engineer, Battery Manufacturer</p>
+          </div>
+        </div>
+        <p class="text-sm text-[var(--ink-soft)] leading-relaxed">
+          "The heuristic fallback is brilliant for dev — we got useful numbers before even training our own XGBoost models."
+        </p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ========================== FAQ ========================== -->
+<section id="faq" class="container py-24 max-w-3xl">
+  <h2 class="text-3xl font-bold tracking-tight mb-10 reveal">Frequently asked</h2>
+  <div class="reveal">
+    <details class="faq-item">
+      <summary>What format should my CSV be in?<i data-lucide="plus" class="faq-icon w-5 h-5"></i></summary>
+      <div class="faq-body">Columns: <code>timestamp, voltage, current, temperature, cycle_count</code>. The <code>soc</code> (state of charge %) column is optional. Download the template from the upload panel for an exact example.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Can I monitor a whole fleet?<i data-lucide="plus" class="faq-icon w-5 h-5"></i></summary>
+      <div class="faq-body">Yes — the dashboard's fleet view aggregates SoH and RUL across every registered pack. Upload separate CSVs with different Battery IDs, or submit manual entries per pack. The fleet analytics table ranks by risk automatically.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How is remaining useful life calculated?<i data-lucide="plus" class="faq-icon w-5 h-5"></i></summary>
+      <div class="faq-body">A gradient-boosted model trained on degradation trends projects the cycle at which SoH crosses your end-of-life threshold (default 70%). Without a trained <code>.pkl</code> file, a physics-informed heuristic using fade rate and temperature penalties provides a usable estimate.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How do I add my own XGBoost models?<i data-lucide="plus" class="faq-icon w-5 h-5"></i></summary>
+      <div class="faq-body">Drop <code>soh_model.pkl</code>, <code>rul_model.pkl</code>, and <code>charging_model.pkl</code> into <code>backend/app/ml/models/</code>. Save with <code>joblib.dump(model, path)</code>. Any estimator with <code>.predict(X)</code> works — restart the server and the new models are picked up automatically.</div>
+    </details>
+    <details class="faq-item">
+      <summary>How do I enable the AI chatbot?<i data-lucide="plus" class="faq-icon w-5 h-5"></i></summary>
+      <div class="faq-body">Add <code>GROQ_API_KEY=gsk_...</code> to <code>backend/.env</code>. Get a free key at <a href="https://console.groq.com" target="_blank" class="text-[var(--accent)] underline">console.groq.com</a>. Without a key the chatbot still responds with helpful demo messages so the widget is always usable.</div>
+    </details>
+    <details class="faq-item">
+      <summary>Can I use PostgreSQL instead of SQLite?<i data-lucide="plus" class="faq-icon w-5 h-5"></i></summary>
+      <div class="faq-body">Yes — set <code>DATABASE_URL=postgresql+psycopg2://user:pass@host:5432/voltaiq</code> in your <code>.env</code>. No other changes needed. SQLite is the default for zero-setup local development.</div>
+    </details>
+  </div>
+</section>
+
+<!-- ========================== CTA ========================== -->
+<section class="container pb-24">
+  <div class="cta-section reveal">
+    <div class="grid md:grid-cols-2 gap-10 items-center">
+      <div>
+        <p class="text-xs font-semibold uppercase tracking-widest text-[rgba(255,255,255,0.5)] mb-4">Ready to go</p>
+        <h2 class="text-3xl font-bold text-white tracking-tight mb-4">
+          Start analyzing your first battery pack in 30 seconds.
+        </h2>
+        <p class="text-[rgba(255,255,255,0.65)] leading-relaxed mb-8">
+          No account needed. No cloud lock-in. Just drop your CSV, add your Groq API key, and you're live — self-hosted, production-ready.
+        </p>
+        <div class="flex flex-wrap gap-3">
+          <a href="#upload" class="btn btn-accent text-[15px] px-6 py-3">
+            <i data-lucide="upload-cloud" class="w-4 h-4"></i> Upload your data
+          </a>
+          <a href="dashboard.html" class="btn px-6 py-3 text-[15px]"
+            style="background:rgba(255,255,255,0.10);color:rgba(255,255,255,0.85);border:1px solid rgba(255,255,255,0.15);">
+            <i data-lucide="layout-dashboard" class="w-4 h-4"></i> View dashboard
+          </a>
+        </div>
+      </div>
+      <div class="flex flex-col gap-4">
+        <div class="flex items-center gap-3 bg-[rgba(255,255,255,0.08)] rounded-xl px-5 py-4 border border-[rgba(255,255,255,0.10)]">
+          <i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--volt-high)] shrink-0"></i>
+          <span class="text-sm text-[rgba(255,255,255,0.80)]">SQLite by default, PostgreSQL-ready</span>
+        </div>
+        <div class="flex items-center gap-3 bg-[rgba(255,255,255,0.08)] rounded-xl px-5 py-4 border border-[rgba(255,255,255,0.10)]">
+          <i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--volt-high)] shrink-0"></i>
+          <span class="text-sm text-[rgba(255,255,255,0.80)]">Physics-informed fallback before you train models</span>
+        </div>
+        <div class="flex items-center gap-3 bg-[rgba(255,255,255,0.08)] rounded-xl px-5 py-4 border border-[rgba(255,255,255,0.10)]">
+          <i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--volt-high)] shrink-0"></i>
+          <span class="text-sm text-[rgba(255,255,255,0.80)]">One <code>.env</code> file — replace keys, go live</span>
+        </div>
+        <div class="flex items-center gap-3 bg-[rgba(255,255,255,0.08)] rounded-xl px-5 py-4 border border-[rgba(255,255,255,0.10)]">
+          <i data-lucide="check-circle-2" class="w-5 h-5 text-[var(--volt-high)] shrink-0"></i>
+          <span class="text-sm text-[rgba(255,255,255,0.80)]">Interactive API docs at <code>/docs</code></span>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- Footer & Chatbot (injected) -->
+<div data-component="footer"></div>
+<div data-component="chatbot"></div>
+
+<script src="js/components.js?v=2"></script>
+<script src="js/api.js?v=2"></script>
+<script src="js/chatbot.js?v=2"></script>
+<script src="js/main.js?v=2"></script>
+</body>
+</html>

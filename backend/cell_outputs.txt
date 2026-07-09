@@ -1,0 +1,1050 @@
+=== CELL 0 ===
+Source:
+from google.colab import drive
+drive.mount('/content/drive')
+
+Outputs:
+Mounted at /content/drive
+
+----------------------------------------
+
+=== CELL 1 ===
+Source:
+import os
+import warnings
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+
+warnings.filterwarnings("ignore")
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 2 ===
+Source:
+import pandas as pd
+import numpy as np
+
+base = "/content/drive/MyDrive/hackathon_data/Nasa_Battery_cleaned_dataset"
+
+battery_df = pd.read_csv(f"{base}/processed_battery_data.csv")
+charge_df = pd.read_csv(f"{base}/processed_charge_data.csv")
+
+print(battery_df.shape)
+print(charge_df.shape)
+
+print(battery_df.columns)
+print(charge_df.columns)
+
+Outputs:
+(2315, 19)
+(2815, 6)
+Index(['source_file', 'battery_id', 'start_time', 'ambient_temperature',
+       'max_voltage', 'min_voltage', 'avg_current', 'avg_temp',
+       'cycle_duration', 'capacity', 'charge_duration', 'max_temp_charge',
+       'initial_capacity', 'SoH', 'cycle_number', 'RUL', 'voltage_range',
+       'capacity_fade_rate', 'anomaly'],
+      dtype='object')
+Index(['source_file', 'battery_id', 'start_time', 'ambient_temperature',
+       'charge_duration', 'max_temp_charge'],
+      dtype='object')
+
+----------------------------------------
+
+=== CELL 3 ===
+Source:
+df = battery_df.merge(
+    charge_df[["battery_id", "source_file", "charge_duration", "max_temp_charge"]],
+    on=["battery_id", "source_file"],
+    how="left"
+)
+
+print(df.shape)
+df.head()
+
+Outputs:
+(2315, 21)
+  source_file battery_id                                         start_time  \
+0   05174.csv      B0005  [2.0080e+03 4.0000e+00 1.9000e+01 1.3000e+01 1...   
+1   05122.csv      B0005  [2.0080e+03 4.0000e+00 2.0000e+00 1.5000e+01 2...   
+2   05124.csv      B0005  [2.0080e+03 4.0000e+00 2.0000e+00 1.9000e+01 4...   
+3   05214.csv      B0005  [2.0080e+03 4.0000e+00 2.3000e+01 1.0000e+00 1...   
+4   05230.csv      B0005  [2.0080e+03 4.0000e+00 2.3000e+01 2.1000e+01 2...   
+
+   ambient_temperature  max_voltage  min_voltage  avg_current   avg_temp  \
+0                   24     4.187344     2.694074    -1.883194  31.987958   
+1                   24     4.191492     2.612467    -1.818702  32.572328   
+2                   24     4.189773     2.587209    -1.817560  32.725235   
+3                   24     4.199853     2.654881    -1.929301  31.849793   
+4                   24     4.199185     2.697943    -1.917015  31.649024   
+
+   cycle_duration  capacity  ...  max_temp_charge_x  initial_capacity  \
+0        3492.907  1.825781  ...                0.0          1.856487   
+1        3690.234  1.856487  ...                0.0          1.856487   
+2        3672.344  1.846327  ...                0.0          1.856487   
+3        3395.219  1.819904  ...                0.0          1.856487   
+4        3358.719  1.788443  ...                0.0          1.856487   
+
+          SoH  cycle_number  RUL  voltage_range  capacity_fade_rate  anomaly  \
+0   98.345980             1  167       1.493270            0.000000        1   
+1  100.000000             2  166       1.579024            0.016818        1   
+2   99.452721             3  165       1.602564            0.005473        1   
+3   98.029434             4  164       1.544973            0.014311        1   
+4   96.334789             5  163       1.501242            0.017287        1   
+
+   charge_duration_y  max_temp_charge_y  
+0                NaN                NaN  
+1                NaN                NaN  
+2                NaN                NaN  
+3                NaN                NaN  
+4                NaN                NaN  
+
+[5 rows x 21 columns]
+----------------------------------------
+
+=== CELL 4 ===
+Source:
+df = df.sort_values(["battery_id", "start_time"]).reset_index(drop=True)
+
+df["cycle_number"] = (
+    df.groupby("battery_id").cumcount() + 1
+)
+
+print(df[["battery_id", "cycle_number"]].head(20))
+
+Outputs:
+   battery_id  cycle_number
+0       B0005             1
+1       B0005             2
+2       B0005             3
+3       B0005             4
+4       B0005             5
+5       B0005             6
+6       B0005             7
+7       B0005             8
+8       B0005             9
+9       B0005            10
+10      B0005            11
+11      B0005            12
+12      B0005            13
+13      B0005            14
+14      B0005            15
+15      B0005            16
+16      B0005            17
+17      B0005            18
+18      B0005            19
+19      B0005            20
+
+----------------------------------------
+
+=== CELL 5 ===
+Source:
+df["capacity"] = pd.to_numeric(df["capacity"], errors="coerce")
+
+df = df.dropna(subset=["capacity"])
+
+df = df[df["capacity"] > 0].copy()
+
+print(df.shape)
+
+Outputs:
+(2315, 21)
+
+----------------------------------------
+
+=== CELL 6 ===
+Source:
+df["initial_capacity"] = (
+    df.groupby("battery_id")["capacity"]
+      .transform("max")
+)
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 7 ===
+Source:
+df["SoH"] = (df["capacity"] / df["initial_capacity"]) * 100
+
+df["SoH"] = df["SoH"].clip(0, 100)
+
+print(df["SoH"].describe())
+
+Outputs:
+count    2315.000000
+mean       82.698454
+std        13.130641
+min         1.974686
+25%        75.257685
+50%        84.101865
+75%        92.195221
+max       100.000000
+Name: SoH, dtype: float64
+
+----------------------------------------
+
+=== CELL 8 ===
+Source:
+df["RUL"] = (
+    df.groupby("battery_id")["cycle_number"]
+      .transform("max")
+    - df["cycle_number"]
+)
+
+print(df[["battery_id", "cycle_number", "RUL"]].head(20))
+print(df["RUL"].describe())
+
+Outputs:
+   battery_id  cycle_number  RUL
+0       B0005             1  167
+1       B0005             2  166
+2       B0005             3  165
+3       B0005             4  164
+4       B0005             5  163
+5       B0005             6  162
+6       B0005             7  161
+7       B0005             8  160
+8       B0005             9  159
+9       B0005            10  158
+10      B0005            11  157
+11      B0005            12  156
+12      B0005            13  155
+13      B0005            14  154
+14      B0005            15  153
+15      B0005            16  152
+16      B0005            17  151
+17      B0005            18  150
+18      B0005            19  149
+19      B0005            20  148
+count    2315.000000
+mean       54.886825
+std        47.972579
+min         0.000000
+25%        17.000000
+50%        38.000000
+75%        83.000000
+max       196.000000
+Name: RUL, dtype: float64
+
+----------------------------------------
+
+=== CELL 9 ===
+Source:
+df["voltage_range"] = df["max_voltage"] - df["min_voltage"]
+
+df["capacity_fade_rate"] = (
+    df.groupby("battery_id")["capacity"]
+      .pct_change()
+      .fillna(0)
+      .abs()
+)
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 10 ===
+Source:
+df.to_csv(f"{base}/processed_battery_data.csv", index=False)
+
+print("✅ Saved processed_battery_data.csv")
+
+Outputs:
+✅ Saved processed_battery_data.csv
+
+----------------------------------------
+
+=== CELL 11 ===
+Source:
+# Voltage Range
+df["voltage_range"] = df["max_voltage"] - df["min_voltage"]
+
+# Capacity Fade Rate
+df["capacity_fade_rate"] = (
+    df.groupby("battery_id")["capacity"]
+      .pct_change()
+      .fillna(0)
+      .abs()
+)
+
+# Replace inf values
+df.replace([np.inf, -np.inf], np.nan, inplace=True)
+
+# Fill remaining NaN values
+df.fillna(0, inplace=True)
+
+print(df.head())
+
+Outputs:
+  source_file battery_id                                         start_time  \
+0   05174.csv      B0005  [2.0080e+03 4.0000e+00 1.9000e+01 1.3000e+01 1...   
+1   05122.csv      B0005  [2.0080e+03 4.0000e+00 2.0000e+00 1.5000e+01 2...   
+2   05124.csv      B0005  [2.0080e+03 4.0000e+00 2.0000e+00 1.9000e+01 4...   
+3   05214.csv      B0005  [2.0080e+03 4.0000e+00 2.3000e+01 1.0000e+00 1...   
+4   05230.csv      B0005  [2.0080e+03 4.0000e+00 2.3000e+01 2.1000e+01 2...   
+
+   ambient_temperature  max_voltage  min_voltage  avg_current   avg_temp  \
+0                   24     4.187344     2.694074    -1.883194  31.987958   
+1                   24     4.191492     2.612467    -1.818702  32.572328   
+2                   24     4.189773     2.587209    -1.817560  32.725235   
+3                   24     4.199853     2.654881    -1.929301  31.849793   
+4                   24     4.199185     2.697943    -1.917015  31.649024   
+
+   cycle_duration  capacity  ...  max_temp_charge_x  initial_capacity  \
+0        3492.907  1.825781  ...                0.0          1.856487   
+1        3690.234  1.856487  ...                0.0          1.856487   
+2        3672.344  1.846327  ...                0.0          1.856487   
+3        3395.219  1.819904  ...                0.0          1.856487   
+4        3358.719  1.788443  ...                0.0          1.856487   
+
+          SoH  cycle_number  RUL  voltage_range  capacity_fade_rate  anomaly  \
+0   98.345980             1  167       1.493270            0.000000        1   
+1  100.000000             2  166       1.579024            0.016818        1   
+2   99.452721             3  165       1.602564            0.005473        1   
+3   98.029434             4  164       1.544973            0.014311        1   
+4   96.334789             5  163       1.501242            0.017287        1   
+
+   charge_duration_y  max_temp_charge_y  
+0                0.0                0.0  
+1                0.0                0.0  
+2                0.0                0.0  
+3                0.0                0.0  
+4                0.0                0.0  
+
+[5 rows x 21 columns]
+
+----------------------------------------
+
+=== CELL 12 ===
+Source:
+df.to_csv(f"{base}/processed_battery_data.csv", index=False)
+
+print("✅ Final dataset saved successfully!")
+
+Outputs:
+✅ Final dataset saved successfully!
+
+----------------------------------------
+
+=== CELL 13 ===
+Source:
+# Keep only one copy
+df = df.drop(columns=[
+    "charge_duration_y",
+    "max_temp_charge_y"
+])
+
+# Rename the remaining columns
+df = df.rename(columns={
+    "charge_duration_x": "charge_duration",
+    "max_temp_charge_x": "max_temp_charge"
+})
+
+print(df.columns.tolist())
+
+Outputs:
+['source_file', 'battery_id', 'start_time', 'ambient_temperature', 'max_voltage', 'min_voltage', 'avg_current', 'avg_temp', 'cycle_duration', 'capacity', 'charge_duration', 'max_temp_charge', 'initial_capacity', 'SoH', 'cycle_number', 'RUL', 'voltage_range', 'capacity_fade_rate', 'anomaly']
+
+----------------------------------------
+
+=== CELL 14 ===
+Source:
+print(df.columns.tolist())
+
+Outputs:
+['source_file', 'battery_id', 'start_time', 'ambient_temperature', 'max_voltage', 'min_voltage', 'avg_current', 'avg_temp', 'cycle_duration', 'capacity', 'charge_duration', 'max_temp_charge', 'initial_capacity', 'SoH', 'cycle_number', 'RUL', 'voltage_range', 'capacity_fade_rate', 'anomaly']
+
+----------------------------------------
+
+=== CELL 15 ===
+Source:
+df.to_csv(f"{base}/processed_battery_data.csv", index=False)
+
+print("✅ Dataset Ready!")
+print(df.shape)
+
+Outputs:
+✅ Dataset Ready!
+(2315, 19)
+
+----------------------------------------
+
+=== CELL 16 ===
+Source:
+!pip install xgboost joblib -q
+
+import joblib
+import numpy as np
+import pandas as pd
+
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import (
+    mean_absolute_error,
+    mean_squared_error,
+    r2_score
+)
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 17 ===
+Source:
+base = "/content/drive/MyDrive/hackathon_data/Nasa_Battery_cleaned_dataset"
+
+df = pd.read_csv(f"{base}/processed_battery_data.csv")
+
+print(df.shape)
+df.head()
+
+Outputs:
+(2315, 19)
+  source_file battery_id                                         start_time  \
+0   05174.csv      B0005  [2.0080e+03 4.0000e+00 1.9000e+01 1.3000e+01 1...   
+1   05122.csv      B0005  [2.0080e+03 4.0000e+00 2.0000e+00 1.5000e+01 2...   
+2   05124.csv      B0005  [2.0080e+03 4.0000e+00 2.0000e+00 1.9000e+01 4...   
+3   05214.csv      B0005  [2.0080e+03 4.0000e+00 2.3000e+01 1.0000e+00 1...   
+4   05230.csv      B0005  [2.0080e+03 4.0000e+00 2.3000e+01 2.1000e+01 2...   
+
+   ambient_temperature  max_voltage  min_voltage  avg_current   avg_temp  \
+0                   24     4.187344     2.694074    -1.883194  31.987958   
+1                   24     4.191492     2.612467    -1.818702  32.572328   
+2                   24     4.189773     2.587209    -1.817560  32.725235   
+3                   24     4.199853     2.654881    -1.929301  31.849793   
+4                   24     4.199185     2.697943    -1.917015  31.649024   
+
+   cycle_duration  capacity  charge_duration  max_temp_charge  \
+0        3492.907  1.825781              0.0              0.0   
+1        3690.234  1.856487              0.0              0.0   
+2        3672.344  1.846327              0.0              0.0   
+3        3395.219  1.819904              0.0              0.0   
+4        3358.719  1.788443              0.0              0.0   
+
+   initial_capacity         SoH  cycle_number  RUL  voltage_range  \
+0          1.856487   98.345980             1  167       1.493270   
+1          1.856487  100.000000             2  166       1.579024   
+2          1.856487   99.452721             3  165       1.602564   
+3          1.856487   98.029434             4  164       1.544973   
+4          1.856487   96.334789             5  163       1.501242   
+
+   capacity_fade_rate  anomaly  
+0            0.000000        1  
+1            0.016818        1  
+2            0.005473        1  
+3            0.014311        1  
+4            0.017287        1  
+----------------------------------------
+
+=== CELL 18 ===
+Source:
+features = [
+    "max_voltage",
+    "min_voltage",
+    "avg_current",
+    "avg_temp",
+    "cycle_duration",
+    "voltage_range",
+    "capacity_fade_rate",
+    "charge_duration",
+    "max_temp_charge",
+    "cycle_number"
+]
+
+X = df[features]
+y = df["SoH"]
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 19 ===
+Source:
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42
+)
+
+print("Training :", X_train.shape)
+print("Testing  :", X_test.shape)
+
+Outputs:
+Training : (1852, 10)
+Testing  : (463, 10)
+
+----------------------------------------
+
+=== CELL 20 ===
+Source:
+soh_model = XGBRegressor(
+    objective="reg:squarederror",
+    n_estimators=300,
+    learning_rate=0.05,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    random_state=42
+)
+
+soh_model.fit(X_train, y_train)
+
+Outputs:
+XGBRegressor(base_score=None, booster=None, callbacks=None,
+             colsample_bylevel=None, colsample_bynode=None,
+             colsample_bytree=0.8, device=None, early_stopping_rounds=None,
+             enable_categorical=True, eval_metric=None, feature_types=None,
+             feature_weights=None, gamma=None, grow_policy=None,
+             importance_type=None, interaction_constraints=None,
+             learning_rate=0.05, max_bin=None, max_cat_threshold=None,
+             max_cat_to_onehot=None, max_delta_step=None, max_depth=6,
+             max_leaves=None, min_child_weight=None, missing=nan,
+             monotone_constraints=None, multi_strategy=None, n_estimators=300,
+             n_jobs=None, num_parallel_tree=None, ...)
+----------------------------------------
+
+=== CELL 21 ===
+Source:
+pred = soh_model.predict(X_test)
+
+mae = mean_absolute_error(y_test, pred)
+rmse = np.sqrt(mean_squared_error(y_test, pred))
+r2 = r2_score(y_test, pred)
+
+print("=" * 40)
+print("SoH MODEL")
+print("=" * 40)
+
+print(f"MAE  : {mae:.3f}")
+print(f"RMSE : {rmse:.3f}")
+print(f"R²   : {r2:.4f}")
+
+Outputs:
+========================================
+SoH MODEL
+========================================
+MAE  : 1.614
+RMSE : 2.953
+R²   : 0.9491
+
+----------------------------------------
+
+=== CELL 22 ===
+Source:
+importance = pd.DataFrame({
+    "Feature": features,
+    "Importance": soh_model.feature_importances_
+})
+
+importance = importance.sort_values(
+    "Importance",
+    ascending=False
+)
+
+print(importance)
+
+Outputs:
+              Feature  Importance
+4      cycle_duration    0.311202
+2         avg_current    0.203982
+3            avg_temp    0.175604
+6  capacity_fade_rate    0.107477
+1         min_voltage    0.058175
+0         max_voltage    0.054338
+5       voltage_range    0.045555
+9        cycle_number    0.043667
+7     charge_duration    0.000000
+8     max_temp_charge    0.000000
+
+----------------------------------------
+
+=== CELL 23 ===
+Source:
+plt.figure(figsize=(10, 6))
+plt.scatter(y_test, pred, alpha=0.6)
+plt.plot([y_test.min(), y_test.max()], [y_test.min(), y_test.max()], 'r--') # Perfect prediction line
+plt.xlabel("Actual SoH (%)")
+plt.ylabel("Predicted SoH (%)")
+plt.title("Predicted vs. Actual SoH")
+plt.grid(True)
+plt.show()
+
+Outputs:
+<Figure size 1000x600 with 1 Axes>
+----------------------------------------
+
+=== CELL 24 ===
+Source:
+test_results = X_test.copy()
+test_results['Actual_SoH'] = y_test
+test_results['Predicted_SoH'] = pred
+
+# Add battery_id to test_results directly from the original df using the index of X_test
+test_results['battery_id'] = df.loc[X_test.index, 'battery_id']
+
+# Select a few battery_ids for plotting, excluding 'B0034'
+all_unique_battery_ids = test_results['battery_id'].unique()
+sample_battery_ids = [bid for bid in all_unique_battery_ids if bid != 'B0034'][:3] # Get the first 3 unique battery IDs, excluding B0034
+
+plt.figure(figsize=(15, 8))
+for battery_id in sample_battery_ids:
+    # 'cycle_number' is already in test_results from X_test.copy()
+    battery_data = test_results[test_results['battery_id'] == battery_id].sort_values('cycle_number')
+    plt.plot(battery_data['cycle_number'], battery_data['Actual_SoH'], label=f'Battery {battery_id} (Actual SoH)', marker='o', markersize=4)
+    plt.plot(battery_data['cycle_number'], battery_data['Predicted_SoH'], label=f'Battery {battery_id} (Predicted SoH)', linestyle='--', marker='x', markersize=4)
+
+plt.xlabel("Cycle Number")
+plt.ylabel("State of Health (%)")
+plt.title("Actual vs. Predicted SoH over Cycles for Sample Batteries")
+plt.legend()
+plt.grid(True)
+plt.show()
+
+Outputs:
+<Figure size 1500x800 with 1 Axes>
+----------------------------------------
+
+=== CELL 25 ===
+Source:
+joblib.dump(
+    soh_model,
+    f"{base}/soh_model.pkl"
+)
+
+print("✅ SoH Model Saved")
+
+Outputs:
+✅ SoH Model Saved
+
+----------------------------------------
+
+=== CELL 26 ===
+Source:
+from xgboost import XGBRegressor
+from sklearn.model_selection import train_test_split
+from sklearn.metrics import mean_absolute_error, mean_squared_error, r2_score
+import numpy as np
+import joblib
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 27 ===
+Source:
+features = [
+    "max_voltage",
+    "min_voltage",
+    "avg_current",
+    "avg_temp",
+    "cycle_duration",
+    "voltage_range",
+    "capacity_fade_rate",
+    "charge_duration",
+    "max_temp_charge",
+    "cycle_number"
+]
+
+X = df[features]
+y = df["RUL"]
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 28 ===
+Source:
+X_train, X_test, y_train, y_test = train_test_split(
+    X,
+    y,
+    test_size=0.20,
+    random_state=42
+)
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 29 ===
+Source:
+rul_model = XGBRegressor(
+    objective="reg:squarederror",
+    n_estimators=300,
+    learning_rate=0.05,
+    max_depth=6,
+    subsample=0.8,
+    colsample_bytree=0.8,
+    random_state=42
+)
+
+rul_model.fit(X_train, y_train)
+
+Outputs:
+XGBRegressor(base_score=None, booster=None, callbacks=None,
+             colsample_bylevel=None, colsample_bynode=None,
+             colsample_bytree=0.8, device=None, early_stopping_rounds=None,
+             enable_categorical=True, eval_metric=None, feature_types=None,
+             feature_weights=None, gamma=None, grow_policy=None,
+             importance_type=None, interaction_constraints=None,
+             learning_rate=0.05, max_bin=None, max_cat_threshold=None,
+             max_cat_to_onehot=None, max_delta_step=None, max_depth=6,
+             max_leaves=None, min_child_weight=None, missing=nan,
+             monotone_constraints=None, multi_strategy=None, n_estimators=300,
+             n_jobs=None, num_parallel_tree=None, ...)
+----------------------------------------
+
+=== CELL 30 ===
+Source:
+pred = rul_model.predict(X_test)
+
+mae = mean_absolute_error(y_test, pred)
+rmse = np.sqrt(mean_squared_error(y_test, pred))
+r2 = r2_score(y_test, pred)
+
+print("=" * 40)
+print("RUL MODEL")
+print("=" * 40)
+print(f"MAE  : {mae:.3f}")
+print(f"RMSE : {rmse:.3f}")
+print(f"R²   : {r2:.4f}")
+
+Outputs:
+========================================
+RUL MODEL
+========================================
+MAE  : 4.298
+RMSE : 9.617
+R²   : 0.9615
+
+----------------------------------------
+
+=== CELL 31 ===
+Source:
+importance = pd.DataFrame({
+    "Feature": features,
+    "Importance": rul_model.feature_importances_
+}).sort_values("Importance", ascending=False)
+
+print(importance)
+
+Outputs:
+              Feature  Importance
+2         avg_current    0.257453
+4      cycle_duration    0.249343
+9        cycle_number    0.242514
+3            avg_temp    0.156772
+5       voltage_range    0.034661
+1         min_voltage    0.024665
+0         max_voltage    0.019759
+6  capacity_fade_rate    0.014834
+7     charge_duration    0.000000
+8     max_temp_charge    0.000000
+
+----------------------------------------
+
+=== CELL 32 ===
+Source:
+joblib.dump(rul_model, f"{base}/rul_model.pkl")
+
+print("✅ RUL Model Saved")
+
+Outputs:
+✅ RUL Model Saved
+
+----------------------------------------
+
+=== CELL 33 ===
+Source:
+from sklearn.ensemble import IsolationForest
+import joblib
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 34 ===
+Source:
+anomaly_features = [
+    "max_voltage",
+    "min_voltage",
+    "avg_current",
+    "avg_temp",
+    "cycle_duration"
+]
+
+X_anomaly = df[anomaly_features]
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 35 ===
+Source:
+anomaly_model = IsolationForest(
+    n_estimators=200,
+    contamination=0.03,
+    random_state=42
+)
+
+anomaly_model.fit(X_anomaly)
+
+Outputs:
+IsolationForest(contamination=0.03, n_estimators=200, random_state=42)
+----------------------------------------
+
+=== CELL 36 ===
+Source:
+df["anomaly"] = anomaly_model.predict(X_anomaly)
+
+print(df["anomaly"].value_counts())
+
+Outputs:
+anomaly
+ 1    2245
+-1      70
+Name: count, dtype: int64
+
+----------------------------------------
+
+=== CELL 37 ===
+Source:
+joblib.dump(anomaly_model, f"{base}/anomaly_model.pkl")
+
+print("✅ Anomaly model saved")
+
+Outputs:
+✅ Anomaly model saved
+
+----------------------------------------
+
+=== CELL 38 ===
+Source:
+df.to_csv(f"{base}/processed_battery_data.csv", index=False)
+
+print("✅ Everything saved successfully!")
+
+Outputs:
+✅ Everything saved successfully!
+
+----------------------------------------
+
+=== CELL 39 ===
+Source:
+%%writefile app.py
+import streamlit as st
+import pandas as pd
+import joblib
+import matplotlib.pyplot as plt
+from datetime import datetime
+import os
+import numpy as np # Import numpy for array reshaping
+
+base = "/content/drive/MyDrive/hackathon_data/Nasa_Battery_cleaned_dataset"
+log_path = f"{base}/health_report_log.csv"
+
+st.set_page_config(page_title="Battery Health Analytics", layout="wide")
+
+@st.cache_resource
+def load_models():
+    soh_model = joblib.load(f"{base}/soh_model.pkl")
+    rul_model = joblib.load(f"{base}/rul_model.pkl")
+    anomaly_model = joblib.load(f"{base}/anomaly_model.pkl")
+    return soh_model, rul_model, anomaly_model
+
+@st.cache_data
+def load_data():
+    df = pd.read_csv(f"{base}/processed_battery_data.csv")
+    return df
+
+soh_model, rul_model, anomaly_model = load_models()
+df = load_data()
+
+features = ['max_voltage', 'min_voltage', 'avg_current', 'avg_temp',
+            'cycle_duration', 'voltage_range', 'capacity_fade_rate',
+            'charge_duration', 'max_temp_charge', 'cycle_number']
+anomaly_features = ['max_voltage', 'min_voltage', 'avg_current', 'avg_temp', 'cycle_duration'] # Define anomaly features here
+
+def log_health_report(battery_id, soh, rul, anomaly_flag, cycle_number):
+    log_entry = {
+        'timestamp': datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+        'battery_id': battery_id,
+        'cycle_number': cycle_number,
+        'SoH': round(float(soh), 2),
+        'RUL': int(rul),
+        'anomaly_detected': bool(anomaly_flag),
+        'status': 'Critical' if soh < 70 else ('Warning' if soh < 80 else 'Healthy')
+    }
+    if os.path.exists(log_path):
+        log_df = pd.read_csv(log_path)
+        log_df = pd.concat([log_df, pd.DataFrame([log_entry])], ignore_index=True)
+    else:
+        log_df = pd.DataFrame([log_entry])
+    log_df.to_csv(log_path, index=False)
+    return log_df
+
+st.sidebar.title("🔋 Battery Health Analytics")
+page = st.sidebar.radio("Navigate", ["Health Prediction", "Voltage Curve Viewer", "Battery Comparison", "Health Report Log"])
+
+if page == "Health Prediction":
+    st.title("Battery Health Estimation & RUL Prediction")
+
+    prediction_mode = st.radio("Choose Prediction Mode:", ("Predict from Dataset", "Manual Data Input"))
+
+    if prediction_mode == "Predict from Dataset":
+        battery_ids = sorted(df['battery_id'].unique())
+        selected_battery = st.selectbox("Select Battery", battery_ids)
+        battery_df = df[df['battery_id'] == selected_battery].sort_values('cycle_number')
+        cycle_options = battery_df['cycle_number'].tolist()
+        selected_cycle = st.selectbox("Select Cycle Number", cycle_options)
+        row = battery_df[battery_df['cycle_number'] == selected_cycle].iloc[0]
+
+        if st.button("Run Prediction (from Dataset)"):
+            X_input = row[features].values.reshape(1, -1)
+            predicted_soh = soh_model.predict(X_input)[0]
+            predicted_rul = rul_model.predict(X_input)[0]
+            predicted_soh = max(0, min(100, predicted_soh))
+            predicted_rul = max(0, predicted_rul)
+            anomaly_input = row[anomaly_features].values.reshape(1, -1) # Use anomaly_features for anomaly model
+            anomaly_pred = anomaly_model.predict(anomaly_input)[0]
+            is_anomaly = anomaly_pred == -1
+
+            col1, col2, col3 = st.columns(3)
+            col1.metric("State of Health", f"{predicted_soh:.1f}%")
+            col2.metric("Remaining Useful Life", f"{predicted_rul:.0f} cycles")
+            col3.metric("Anomaly Status", "⚠️ Anomaly" if is_anomaly else "✅ Normal")
+
+            if predicted_soh < 70:
+                st.error("🚨 CRITICAL: Battery below 70% SoH — recommend immediate replacement scheduling.")
+            elif predicted_soh < 80:
+                st.warning("⚠️ WARNING: Battery approaching end-of-life — schedule proactive maintenance.")
+            else:
+                st.success("✅ Battery is healthy.")
+
+            if is_anomaly:
+                st.error("Anomalous charging/discharge pattern detected.")
+
+            log_df = log_health_report(selected_battery, predicted_soh, predicted_rul, is_anomaly, selected_cycle)
+            st.subheader("Recent Health Report Log (this battery)")
+            st.dataframe(log_df[log_df['battery_id'] == selected_battery].tail(10))
+
+    elif prediction_mode == "Manual Data Input":
+        st.subheader("Enter Battery Parameters Manually")
+        col1, col2 = st.columns(2)
+        input_data = {}
+        for i, feature in enumerate(features):
+            default_value = df[feature].mean() # Use mean as a reasonable default
+            if i % 2 == 0:
+                with col1:
+                    input_data[feature] = st.number_input(f"{feature.replace('_', ' ').title()}", value=float(default_value))
+            else:
+                with col2:
+                    input_data[feature] = st.number_input(f"{feature.replace('_', ' ').title()}", value=float(default_value))
+
+        if st.button("Run Prediction (Manual Input)"):
+            # Prepare input for SoH and RUL models
+            X_input_manual = np.array([input_data[f] for f in features]).reshape(1, -1)
+
+            # Prepare input for Anomaly model
+            anomaly_input_manual = np.array([input_data[f] for f in anomaly_features]).reshape(1, -1)
+
+            predicted_soh = float(np.clip(soh_model.predict(X_input_manual)[0], 0, 100))
+            predicted_rul = max(0, int(round(rul_model.predict(X_input_manual)[0])))
+            anomaly_pred = anomaly_model.predict(anomaly_input_manual)[0]
+            is_anomaly = anomaly_pred == -1
+
+            col1_res, col2_res, col3_res = st.columns(3)
+            col1_res.metric("State of Health", f"{predicted_soh:.1f}%")
+            col2_res.metric("Remaining Useful Life", f"{predicted_rul:.0f} cycles")
+            col3_res.metric("Anomaly Status", "⚠️ Anomaly" if is_anomaly else "✅ Normal")
+
+            if predicted_soh < 70:
+                st.error("🚨 CRITICAL: Battery below 70% SoH — recommend immediate replacement scheduling.")
+            elif predicted_soh < 80:
+                st.warning("⚠️ WARNING: Battery approaching end-of-life — schedule proactive maintenance.")
+            else:
+                st.success("✅ Battery is healthy.")
+
+            if is_anomaly:
+                st.error("Anomalous charging/discharge pattern detected.")
+
+            # For manual input, we can log with a generic 'Manual' battery_id or skip logging
+            # log_health_report("Manual_Input", predicted_soh, predicted_rul, is_anomaly, input_data['cycle_number'])
+
+elif page == "Voltage Curve Viewer":
+    st.title("Discharge Voltage Curve Viewer")
+    st.caption("Shape changes visibly as battery ages")
+    battery_ids = sorted(df['battery_id'].unique())
+    selected_battery = st.selectbox("Select Battery", battery_ids)
+    battery_df = df[df['battery_id'] == selected_battery].sort_values('cycle_number')
+    selected_cycle_row = st.selectbox("Select Cycle", battery_df['cycle_number'].tolist())
+    source_file = battery_df[battery_df['cycle_number'] == selected_cycle_row]['source_file'].values[0]
+    raw_cycle = pd.read_csv(f"{base}/data/{source_file}")
+    fig, ax = plt.subplots()
+    ax.plot(raw_cycle['Time'], raw_cycle['Voltage_measured'])
+    ax.set_xlabel("Time (s)")
+    ax.set_ylabel("Voltage (V)")
+    ax.set_title(f"{selected_battery} - Cycle {selected_cycle_row}")
+    st.pyplot(fig)
+
+elif page == "Battery Comparison":
+    st.title("Battery Fleet Comparison & Ranking")
+    latest = df.sort_values('cycle_number').groupby('battery_id').last().reset_index()
+    latest = latest[['battery_id', 'SoH', 'RUL', 'cycle_number']].sort_values('SoH')
+    st.subheader("Batteries Ranked by Current Health (Worst to Best)")
+    st.dataframe(latest)
+    fig, ax = plt.subplots()
+    ax.barh(latest['battery_id'], latest['SoH'])
+    ax.set_xlabel("State of Health (%)")
+    ax.set_title("Fleet-wide Battery Health Comparison")
+    st.pyplot(fig)
+
+elif page == "Health Report Log":
+    st.title("Full Health Report Log")
+    if os.path.exists(log_path):
+        log_df = pd.read_csv(log_path)
+        st.dataframe(log_df)
+    else:
+        st.info("No health reports logged yet. Run a prediction first.")
+
+Outputs:
+Writing app.py
+
+----------------------------------------
+
+=== CELL 40 ===
+Source:
+!pip install pyngrok --quiet
+
+Outputs:
+
+----------------------------------------
+
+=== CELL 41 ===
+Source:
+from pyngrok import ngrok
+
+# Paste your authtoken here (one-time)
+ngrok.set_auth_token("3GHChtj1cTsIJaVYsiNfILKSn8t_4tsRDvFHoEAyddSeC38vp")
+
+# Kill any existing tunnels first
+ngrok.kill()
+
+# Start Streamlit in background
+!streamlit run app.py &>/content/logs.txt &
+
+import time
+time.sleep(5)  # give Streamlit a moment to start
+
+# Open tunnel
+public_url = ngrok.connect(8501)
+print("Your app is live at:", public_url)
+
+Outputs:
+Your app is live at: NgrokTunnel: "https://viability-cranial-arrogant.ngrok-free.dev" -> "http://localhost:8501"
+
+----------------------------------------
+
