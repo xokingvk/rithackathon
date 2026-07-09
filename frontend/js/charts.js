@@ -359,3 +359,76 @@ function animateCounter(el, target, suffix = '', duration = 900) {
   }
   requestAnimationFrame(step);
 }
+
+// ---- Predicted vs Actual SoH Scatter Chart ----
+function renderPredictedVsActualChart(canvasId, points) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return null;
+  const ctx = canvas.getContext('2d');
+  const safePoints = points || [];
+
+  return new Chart(ctx, {
+    type: 'scatter',
+    data: {
+      datasets: [
+        {
+          label: 'Prediction Points',
+          data: safePoints,
+          backgroundColor: 'rgba(59, 130, 246, 0.55)',
+          pointRadius: 4.5,
+          pointHoverRadius: 7,
+          borderWidth: 0,
+        },
+        {
+          label: 'Perfect Fit (y = x)',
+          type: 'line',
+          data: [{ x: 0, y: 0 }, { x: 200, y: 200 }],
+          borderColor: '#EF4444',
+          borderDash: [5, 5],
+          borderWidth: 2,
+          pointRadius: 0,
+          fill: false,
+        }
+      ]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: {
+          display: true,
+          position: 'top',
+          align: 'end',
+          labels: {
+            boxWidth: 10, boxHeight: 10,
+            usePointStyle: true, pointStyle: 'circle',
+            color: '#8A96AF',
+          }
+        },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` Actual: ${ctx.parsed.x.toFixed(1)}%  Predicted: ${ctx.parsed.y.toFixed(1)}%`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Actual SoH (%)', color: '#8A96AF', font: { size: 12 } },
+          grid: { color: 'rgba(42,51,80,0.6)' },
+          border: { display: false },
+          min: 0,
+          max: 200,
+          ticks: { color: '#8A96AF' }
+        },
+        y: {
+          title: { display: true, text: 'Predicted SoH (%)', color: '#8A96AF', font: { size: 12 } },
+          grid: { color: 'rgba(42,51,80,0.6)' },
+          border: { display: false },
+          min: 0,
+          max: 200,
+          ticks: { color: '#8A96AF' }
+        }
+      }
+    }
+  });
+}
