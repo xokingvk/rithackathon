@@ -51,9 +51,6 @@
       <a href="#overview" class="sidebar-link is-active px-3 py-2.5 flex items-center gap-3 rounded-lg">
         <i data-lucide="layout-dashboard" class="w-4 h-4"></i> Overview
       </a>
-      <a href="#trends" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
-        <i data-lucide="line-chart" class="w-4 h-4"></i> Health trends
-      </a>
 
       <p class="dash-section-label mt-4 mb-1">Data</p>
       <a href="#reports" class="sidebar-link px-3 py-2.5 flex items-center gap-3 rounded-lg">
@@ -181,52 +178,7 @@
 
       </section>
 
-      <!-- ======= CHARTS ROW 1 ======= -->
-      <section id="trends" class="grid lg:grid-cols-3 gap-4 mb-4">
 
-        <!-- SoH trend (spans 2 cols) -->
-        <div class="dash-card p-5 lg:col-span-2">
-          <div class="flex items-center justify-between mb-5">
-            <div>
-              <p class="font-semibold text-sm">State-of-health trend</p>
-              <p class="text-xs dash-card-muted mt-0.5">Rolling estimate across recent cycles</p>
-            </div>
-            <div class="flex items-center gap-2">
-              <span class="inline-flex items-center gap-1.5 text-xs dash-card-muted">
-                <span class="w-3 h-0.5 bg-[var(--accent)] inline-block rounded"></span> SoH
-              </span>
-            </div>
-          </div>
-          <div class="h-64"><canvas id="chart-soh"></canvas></div>
-        </div>
-
-        <!-- Fleet distribution -->
-        <div class="dash-card p-5">
-          <p class="font-semibold text-sm mb-0.5">Fleet health distribution</p>
-          <p class="text-xs dash-card-muted mb-4">Healthy · Watch · At-risk</p>
-          <div class="h-56"><canvas id="chart-fleet-dist"></canvas></div>
-        </div>
-
-      </section>
-
-      <!-- ======= CHARTS ROW 2 ======= -->
-      <section class="grid lg:grid-cols-2 gap-4 mb-6">
-
-        <!-- Degradation -->
-        <div class="dash-card p-5">
-          <p class="font-semibold text-sm mb-0.5">Degradation: observed vs. predicted</p>
-          <p class="text-xs dash-card-muted mb-4">Remaining useful life model output</p>
-          <div class="h-60"><canvas id="chart-degradation"></canvas></div>
-        </div>
-
-        <!-- Charging efficiency -->
-        <div class="dash-card p-5">
-          <p class="font-semibold text-sm mb-0.5">Charging efficiency by pack</p>
-          <p class="text-xs dash-card-muted mb-4">Green ≥90% · amber ≥75% · red below</p>
-          <div class="h-60"><canvas id="chart-charging"></canvas></div>
-        </div>
-
-      </section>
 
       <!-- ======= REPORT HISTORY ======= -->
       <section id="reports" class="dash-card mb-4">
