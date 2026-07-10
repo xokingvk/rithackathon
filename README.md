@@ -390,9 +390,12 @@ This project is developed for educational and research purposes.
 
 # 👨‍💻 Authors
 
-**Vishnuvardhan B**
-**Kamaleshwaran B**
-**John Ezra P**
-**Kevin cris F**
+**1.Vishnuvardhan B**
+
+**2.Kamaleshwaran B**
+
+**3.John Ezra P**
+
+**4.Kevin cris F**
 
 Battery Health Analytics using Machine Learning
