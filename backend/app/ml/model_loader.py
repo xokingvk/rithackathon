@@ -139,7 +139,7 @@ class ModelRegistry:
         return self._heuristic_rul(soh, cycle_count, temperature)
 
     def predict_charging_efficiency(self, voltage: float, current: float,
-                                     temperature: float, cycle_count: int) -> float:
+                                     temperature: float, cycle_count: int, soh: float = 100.0) -> float:
         """Charging efficiency, 0-100%, lower values flag anomalies (overcharge/fast fade)."""
         self._ensure_loaded()
         if self._charging_model is not None:
@@ -158,6 +158,12 @@ class ModelRegistry:
                 'cycle_duration': cycle_dur
             }])
             is_normal = int(self._charging_model.predict(df)[0])
+            
+            # Physics/Logical override: if SoH indicates a healthy battery and key conditions (temp, current) are normal,
+            # ignore minor out-of-distribution voltage fluctuations to prevent false positives.
+            if soh >= 80.0 and temperature < 45.0 and abs(current) < 10.0:
+                is_normal = 1
+                
             score = float(self._charging_model.score_samples(df)[0])
             
             if is_normal == 1:
@@ -168,9 +174,14 @@ class ModelRegistry:
         return self._heuristic_charging_efficiency(voltage, current, temperature)
 
     def predict_anomaly(self, voltage: float, current: float,
-                        temperature: float, cycle_count: int) -> bool:
+                        temperature: float, cycle_count: int, soh: float = 100.0) -> bool:
         """Anomaly detection using IsolationForest. Returns True if anomalous (-1), False if normal (1)."""
         self._ensure_loaded()
+        
+        # Override: if SOH is healthy and basic physical metrics are normal, it is not an anomaly
+        if soh >= 80.0 and temperature < 45.0 and abs(current) < 10.0:
+            return False
+            
         if self._charging_model is not None:
             import pandas as pd
             max_v = np.clip(voltage, 3.8, 4.22)

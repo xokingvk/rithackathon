@@ -26,8 +26,8 @@ def score_reading(voltage: float, current: float, temperature: float,
     """Run the three models against a single reading and return a unified result."""
     soh = model_registry.predict_soh(voltage, current, temperature, cycle_count, soc)
     rul = model_registry.predict_rul(soh, cycle_count, temperature)
-    charging_efficiency = model_registry.predict_charging_efficiency(voltage, current, temperature, cycle_count)
-    anomaly_detected = model_registry.predict_anomaly(voltage, current, temperature, cycle_count)
+    charging_efficiency = model_registry.predict_charging_efficiency(voltage, current, temperature, cycle_count, soh)
+    anomaly_detected = model_registry.predict_anomaly(voltage, current, temperature, cycle_count, soh)
     status = classify_status(soh)
     return {
         "soh": round(soh, 1),
