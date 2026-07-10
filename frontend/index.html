@@ -441,8 +441,8 @@
           <!-- Left column: High-tech SOH Gauge Card -->
           <div class="md:col-span-5 flex flex-col items-center justify-center p-6 bg-[rgba(255,255,255,0.02)] rounded-xl border border-[var(--border)] text-center">
             
-            <div class="relative w-56 h-36 flex flex-col items-center justify-center">
-              <svg class="w-full h-full" viewBox="0 0 100 60">
+            <div class="w-56 h-32 flex items-center justify-center">
+              <svg class="w-full h-full" viewBox="0 0 100 55">
                 <defs>
                   <!-- Gauge gradient color matching high-tech look -->
                   <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
@@ -468,12 +468,12 @@
                 <!-- Indicator needle pointing to SOH -->
                 <line id="gauge-needle" x1="50" y1="50" x2="50" y2="18" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" style="transform-origin: 50px 50px; transform: rotate(-90deg); transition: transform 1.6s cubic-bezier(0.19, 1, 0.22, 1);" />
               </svg>
-              
-              <!-- SOH Score labels -->
-              <div class="absolute bottom-1 flex flex-col items-center">
-                <span class="text-3xl font-extrabold font-mono tracking-tight text-[#10B981]" id="detail-soh-val">0.0%</span>
-                <span class="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mt-1">State of Health (SOH) Score</span>
-              </div>
+            </div>
+            
+            <!-- SOH Score labels (moved to standard block flow below SVG) -->
+            <div class="mt-4 flex flex-col items-center">
+              <span class="text-3xl font-extrabold font-mono tracking-tight text-[#10B981]" id="detail-soh-val">0.0%</span>
+              <span class="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mt-1">State of Health (SOH) Score</span>
             </div>
           </div>
           
