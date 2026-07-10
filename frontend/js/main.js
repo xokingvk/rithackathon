@@ -359,6 +359,32 @@ function initManualForm() {
         }
       }
       
+      // Populate recommendation based on SOH threshold rules
+      const recVal = document.getElementById('detail-recommendation-val');
+      const recIcon = document.getElementById('recommendation-icon');
+      if (recVal) {
+        if (data.soh >= 80) {
+          recVal.innerHTML = `<strong>Healthy (SoH ≥ 80%):</strong> No action needed, continue normal use.`;
+          if (recIcon) {
+            recIcon.className = 'w-4 h-4 text-[#10B981] shrink-0 mt-0.5';
+            recIcon.setAttribute('data-lucide', 'check-circle-2');
+          }
+        } else if (data.soh >= 65) {
+          recVal.innerHTML = `<strong>Watch (SoH 65–80%):</strong> Degrading but not urgent — schedule an inspection within 30 days and reduce fast-charging frequency.`;
+          if (recIcon) {
+            recIcon.className = 'w-4 h-4 text-[#F59E0B] shrink-0 mt-0.5';
+            recIcon.setAttribute('data-lucide', 'alert-circle');
+          }
+        } else {
+          recVal.innerHTML = `<strong>At-risk (SoH &lt; 65%):</strong> Plan for replacement — avoid deep discharges and high-temperature charging until replaced.`;
+          if (recIcon) {
+            recIcon.className = 'w-4 h-4 text-[#EF4444] shrink-0 mt-0.5';
+            recIcon.setAttribute('data-lucide', 'alert-triangle');
+          }
+        }
+        if (window.lucide) lucide.createIcons({ nodes: [recIcon] });
+      }
+
       // Rotate needle (SOH range 0-100 maps to -90 to +90 degrees)
       if (needle) {
         const rotationAngle = -90 + (data.soh / 100) * 180;
