@@ -27,11 +27,13 @@ def score_reading(voltage: float, current: float, temperature: float,
     soh = model_registry.predict_soh(voltage, current, temperature, cycle_count, soc)
     rul = model_registry.predict_rul(soh, cycle_count, temperature)
     charging_efficiency = model_registry.predict_charging_efficiency(voltage, current, temperature, cycle_count)
+    anomaly_detected = model_registry.predict_anomaly(voltage, current, temperature, cycle_count)
     status = classify_status(soh)
     return {
         "soh": round(soh, 1),
         "rul_cycles": rul,
         "charging_efficiency": round(charging_efficiency, 1),
+        "anomaly_detected": anomaly_detected,
         "status": status,
     }
 

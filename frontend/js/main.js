@@ -342,11 +342,22 @@ function initManualForm() {
       const sohVal = document.getElementById('detail-soh-val');
       const rulVal = document.getElementById('detail-rul-val');
       const effVal = document.getElementById('detail-eff-val');
+      const anomalyVal = document.getElementById('detail-anomaly-val');
       const needle = document.getElementById('gauge-needle');
       
       if (sohVal) sohVal.textContent = `${data.soh}%`;
       if (rulVal) rulVal.textContent = `${data.rul_cycles} cycles`;
       if (effVal) effVal.textContent = `${data.charging_efficiency}%`;
+      
+      if (anomalyVal) {
+        if (data.anomaly_detected) {
+          anomalyVal.textContent = 'ANOMALOUS';
+          anomalyVal.className = 'font-mono text-sm font-bold text-red-400';
+        } else {
+          anomalyVal.textContent = 'NORMAL';
+          anomalyVal.className = 'font-mono text-sm font-bold text-green-400';
+        }
+      }
       
       // Rotate needle (SOH range 0-100 maps to -90 to +90 degrees)
       if (needle) {

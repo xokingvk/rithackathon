@@ -23,6 +23,7 @@ class HealthEstimateOut(BaseModel):
     soh: float
     rul_cycles: int
     charging_efficiency: float
+    anomaly_detected: Optional[bool] = None
     status: str
     generated_at: datetime
 
@@ -33,6 +34,7 @@ class CsvUploadOut(BaseModel):
     soh: float
     rul_cycles: int
     charging_efficiency: float
+    anomaly_detected: Optional[bool] = None
     status: str
     report_id: str
 

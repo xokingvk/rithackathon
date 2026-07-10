@@ -167,6 +167,29 @@ class ModelRegistry:
             return float(np.clip(eff, 10, 100))
         return self._heuristic_charging_efficiency(voltage, current, temperature)
 
+    def predict_anomaly(self, voltage: float, current: float,
+                        temperature: float, cycle_count: int) -> bool:
+        """Anomaly detection using IsolationForest. Returns True if anomalous (-1), False if normal (1)."""
+        self._ensure_loaded()
+        if self._charging_model is not None:
+            import pandas as pd
+            max_v = np.clip(voltage, 3.8, 4.22)
+            min_v = 2.6
+            avg_curr = -abs(current)
+            avg_temp = temperature
+            cycle_dur = np.clip(3600.0 * (3.0 / max(0.1, abs(current))), 100.0, 6500.0)
+            
+            df = pd.DataFrame([{
+                'max_voltage': max_v,
+                'min_voltage': min_v,
+                'avg_current': avg_curr,
+                'avg_temp': avg_temp,
+                'cycle_duration': cycle_dur
+            }])
+            is_normal = int(self._charging_model.predict(df)[0])
+            return is_normal == -1
+        return False
+
     # ---------------- Heuristic fallbacks (physics-informed, not ML) ----------------
     # These make the API usable end-to-end before real models are trained.
     # They are intentionally simple and clearly documented as placeholders.
