@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initCsvUpload();
   initManualForm();
   initCountUpStats();
+  initSampleTimestamp();
 });
 
 /* ---- Scroll progress bar ---- */
@@ -461,3 +462,23 @@ const successLine = msg => `<p class="flex items-start gap-2 text-[var(--volt-hi
 const errorLine   = msg => `<p class="flex items-start gap-2 text-[var(--volt-low)]"><i data-lucide="alert-circle" class="w-4 h-4 shrink-0 mt-0.5"></i><span>${msg}</span></p>`;
 const pendingLine = msg => `<p class="flex items-start gap-2 text-[var(--ink-soft)]"><i data-lucide="loader" class="w-4 h-4 shrink-0 mt-0.5 animate-spin"></i><span>${msg}</span></p>`;
 function refreshIcons() { setTimeout(() => window.lucide && lucide.createIcons(), 0); }
+
+/* ---- Dynamic CSV Sample Timestamp ---- */
+function initSampleTimestamp() {
+  const el = document.getElementById('csv-sample-timestamp');
+  if (!el) return;
+  const update = () => {
+    const now = new Date();
+    const pad = n => String(n).padStart(2, '0');
+    const yyyy = now.getFullYear();
+    const mm = pad(now.getMonth() + 1);
+    const dd = pad(now.getDate());
+    const hh = pad(now.getHours());
+    const min = pad(now.getMinutes());
+    const ss = pad(now.getSeconds());
+    el.textContent = `${yyyy}-${mm}-${dd} ${hh}:${min}:${ss}`;
+  };
+  update();
+  // Keep it ticking like a live clock!
+  setInterval(update, 1000);
+}
