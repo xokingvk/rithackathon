@@ -439,42 +439,91 @@
         <div class="grid md:grid-cols-12 gap-6 items-stretch">
           
           <!-- Left column: High-tech SOH Gauge Card -->
-          <div class="md:col-span-5 flex flex-col items-center justify-center p-6 bg-[rgba(255,255,255,0.02)] rounded-xl border border-[var(--border)] text-center">
+          <div class="md:col-span-5 flex flex-col items-center justify-between p-6 bg-[rgba(255,255,255,0.02)] rounded-xl border border-[rgba(16,185,129,0.2)] text-center relative overflow-hidden" style="box-shadow: 0 0 20px rgba(16, 185, 129, 0.05);">
             
-            <div class="w-56 h-32 flex items-center justify-center">
-              <svg class="w-full h-full" viewBox="0 0 100 55">
-                <defs>
-                  <!-- Gauge gradient color matching high-tech look -->
-                  <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="0%" stop-color="#EF4444" />
-                    <stop offset="60%" stop-color="#F59E0B" />
-                    <stop offset="100%" stop-color="#10B981" />
-                  </linearGradient>
-                </defs>
-                
-                <!-- Background Track -->
-                <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7" stroke-linecap="round" />
-                
-                <!-- Colored Gauge Track (Gradient) -->
-                <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="url(#gauge-grad)" stroke-width="7" stroke-linecap="round" />
-                
-                <!-- Inner Tick Marks -->
-                <path d="M 23 45 L 26 43 M 31 34 L 33 33 M 42 27 L 43 25 M 50 25 L 50 22 M 58 27 L 57 25 M 69 34 L 67 33 M 77 45 L 74 43" stroke="rgba(255,255,255,0.3)" stroke-width="0.8" />
-                
-                <!-- Center green/teal pivot point -->
-                <circle cx="50" cy="50" r="5" fill="#10B981" />
-                <circle cx="50" cy="50" r="2.5" fill="#1A202C" />
-                
-                <!-- Indicator needle pointing to SOH -->
-                <line id="gauge-needle" x1="50" y1="50" x2="50" y2="18" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" style="transform-origin: 50px 50px; transform: rotate(-90deg); transition: transform 1.6s cubic-bezier(0.19, 1, 0.22, 1);" />
-              </svg>
+            <!-- Stylized HUD corners -->
+            <div class="absolute top-2 left-2 w-2 h-2 border-t-2 border-l-2 border-[#10B981] opacity-40"></div>
+            <div class="absolute top-2 right-2 w-2 h-2 border-t-2 border-r-2 border-[#10B981] opacity-40"></div>
+            <div class="absolute bottom-2 left-2 w-2 h-2 border-b-2 border-l-2 border-[#10B981] opacity-40"></div>
+            <div class="absolute bottom-2 right-2 w-2 h-2 border-b-2 border-r-2 border-[#10B981] opacity-40"></div>
+
+            <span class="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mb-4">Diagnostic Score HUD</span>
+
+            <!-- Main HUD Diagram Container -->
+            <div class="relative w-full flex items-center justify-center py-4">
+              
+              <!-- Left side high-tech icons (Database) -->
+              <div class="absolute left-1 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 opacity-60">
+                <div class="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[var(--border)] flex items-center justify-center">
+                  <i data-lucide="database" class="w-4 h-4 text-[var(--accent)]"></i>
+                </div>
+                <div class="w-4 h-0.5 bg-[var(--border)] relative">
+                  <div class="absolute right-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rotate-45 bg-[var(--border)]"></div>
+                </div>
+              </div>
+
+              <!-- Right side high-tech icons (Settings/Gear) -->
+              <div class="absolute right-1 top-1/2 -translate-y-1/2 flex flex-col items-center gap-1.5 opacity-60">
+                <div class="w-8 h-8 rounded-lg bg-[rgba(255,255,255,0.03)] border border-[var(--border)] flex items-center justify-center">
+                  <i data-lucide="settings" class="w-4 h-4 text-[#10B981]"></i>
+                </div>
+                <div class="w-4 h-0.5 bg-[var(--border)] relative">
+                  <div class="absolute left-0 top-1/2 -translate-y-1/2 w-1.5 h-1.5 rotate-45 bg-[var(--border)]"></div>
+                </div>
+              </div>
+
+              <!-- Center Gauge SVG -->
+              <div class="w-48 h-28 flex items-center justify-center relative">
+                <svg class="w-full h-full" viewBox="0 0 100 55">
+                  <defs>
+                    <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                      <stop offset="0%" stop-color="#EF4444" />
+                      <stop offset="60%" stop-color="#F59E0B" />
+                      <stop offset="100%" stop-color="#10B981" />
+                    </linearGradient>
+                  </defs>
+                  
+                  <!-- Background Track -->
+                  <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7" stroke-linecap="round" />
+                  
+                  <!-- Colored Gauge Track (Gradient) -->
+                  <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="url(#gauge-grad)" stroke-width="7" stroke-linecap="round" />
+                  
+                  <!-- Outer dashed tech circle -->
+                  <path d="M 11 50 A 39 39 0 0 1 89 50" fill="none" stroke="rgba(16,185,129,0.18)" stroke-width="1.2" stroke-dasharray="2, 4" />
+                  
+                  <!-- Inner Tick Marks -->
+                  <path d="M 23 45 L 26 43 M 31 34 L 33 33 M 42 27 L 43 25 M 50 25 L 50 22 M 58 27 L 57 25 M 69 34 L 67 33 M 77 45 L 74 43" stroke="rgba(255,255,255,0.3)" stroke-width="0.8" />
+                  
+                  <!-- Center green/teal pivot point -->
+                  <circle cx="50" cy="50" r="5" fill="#10B981" />
+                  <circle cx="50" cy="50" r="2.5" fill="#1A202C" />
+                  
+                  <!-- Indicator needle pointing to SOH -->
+                  <line id="gauge-needle" x1="50" y1="50" x2="50" y2="18" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" style="transform-origin: 50px 50px; transform: rotate(-90deg); transition: transform 1.6s cubic-bezier(0.19, 1, 0.22, 1);" />
+                </svg>
+              </div>
+
             </div>
             
-            <!-- SOH Score labels (moved to standard block flow below SVG) -->
-            <div class="mt-4 flex flex-col items-center">
-              <span class="text-3xl font-extrabold font-mono tracking-tight text-[#10B981]" id="detail-soh-val">0.0%</span>
+            <!-- SOH Score labels -->
+            <div class="mt-2 flex flex-col items-center z-10">
+              <span class="text-3xl font-extrabold font-mono tracking-tight text-[#10B981] drop-shadow-[0_0_10px_rgba(16,185,129,0.2)]" id="detail-soh-val">0.0%</span>
               <span class="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mt-1">State of Health (SOH) Score</span>
             </div>
+            
+            <!-- Bottom high-tech indicators row -->
+            <div class="flex items-center justify-between w-full mt-4 pt-4 border-t border-[rgba(255,255,255,0.04)] text-left">
+              <div class="flex items-center gap-2 opacity-50">
+                <i data-lucide="trending-up" class="w-3.5 h-3.5 text-[#10B981]"></i>
+                <span class="text-[8px] font-bold uppercase tracking-wider text-[var(--ink-faint)]">Fleet Normal</span>
+              </div>
+              <div class="flex items-center gap-2 opacity-50">
+                <span class="text-[8px] font-bold uppercase tracking-wider text-[var(--ink-faint)]">Scoring Active</span>
+                <i data-lucide="activity" class="w-3.5 h-3.5 text-[var(--accent)] animate-pulse"></i>
+              </div>
+            </div>
+            
           </div>
           
           <!-- Right column: Metrics & Capacity Degradation Trend -->
