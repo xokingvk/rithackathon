@@ -13,6 +13,7 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="js/lucide.min.js"></script>
+<script src="js/chart.umd.min.js"></script>
 <link rel="stylesheet" href="css/style.css" />
 
 <script>
@@ -433,62 +434,77 @@
         </button>
       </div>
 
-      <!-- ======= SCIBIL RISK GAUGE & ANALYTICAL DETAILS ======= -->
+      <!-- ======= HIGH-FIDELITY SOH GAUGE & CAPACITY DEGRADATION CHART ======= -->
       <div id="manual-detail-card" class="hidden mt-6 border-t border-[var(--border)] pt-6">
-        <div class="grid md:grid-cols-12 gap-6 items-center">
+        <div class="grid md:grid-cols-12 gap-6 items-stretch">
           
-          <!-- Left column: CIBIL Score style Gauge -->
-          <div class="md:col-span-5 flex flex-col items-center justify-center p-5 bg-[rgba(255,255,255,0.02)] rounded-xl border border-[var(--border)]">
-            <p class="text-[10px] font-bold uppercase tracking-wider text-[var(--ink-soft)] mb-2">Battery Health Score</p>
+          <!-- Left column: High-tech SOH Gauge Card -->
+          <div class="md:col-span-5 flex flex-col items-center justify-center p-6 bg-[rgba(255,255,255,0.02)] rounded-xl border border-[var(--border)] text-center">
             
-            <div class="relative w-48 h-28 flex items-center justify-center overflow-hidden">
-              <svg class="w-full h-full" viewBox="0 0 100 50">
-                <!-- Grey background arc -->
-                <path d="M 10 50 A 40 40 0 0 1 90 50" fill="none" stroke="rgba(255,255,255,0.08)" stroke-width="8" stroke-linecap="round" />
+            <div class="relative w-56 h-36 flex flex-col items-center justify-center">
+              <svg class="w-full h-full" viewBox="0 0 100 60">
+                <defs>
+                  <!-- Gauge gradient color matching high-tech look -->
+                  <linearGradient id="gauge-grad" x1="0%" y1="0%" x2="100%" y2="0%">
+                    <stop offset="0%" stop-color="#EF4444" />
+                    <stop offset="60%" stop-color="#F59E0B" />
+                    <stop offset="100%" stop-color="#10B981" />
+                  </linearGradient>
+                </defs>
                 
-                <!-- Segments representing CIBIL levels -->
-                <path d="M 10 50 A 40 40 0 0 1 66 50" fill="none" stroke="#EF4444" stroke-width="8" stroke-linecap="round" />
-                <path d="M 66 50 A 40 40 0 0 1 78 50" fill="none" stroke="#F59E0B" stroke-width="8" stroke-linecap="round" />
-                <path d="M 78 50 A 40 40 0 0 1 90 50" fill="none" stroke="#22C55E" stroke-width="8" stroke-linecap="round" />
+                <!-- Background Track -->
+                <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="rgba(255,255,255,0.06)" stroke-width="7" stroke-linecap="round" />
                 
-                <!-- Center Pivot -->
-                <circle cx="50" cy="50" r="3.5" fill="var(--ink)" />
-                <!-- Needle -->
-                <line id="gauge-needle" x1="50" y1="50" x2="50" y2="15" stroke="var(--ink)" stroke-width="2.5" stroke-linecap="round" style="transform-origin: 50px 50px; transform: rotate(-90deg); transition: transform 1.5s cubic-bezier(0.19, 1, 0.22, 1);" />
+                <!-- Colored Gauge Track (Gradient) -->
+                <path d="M 15 50 A 35 35 0 0 1 85 50" fill="none" stroke="url(#gauge-grad)" stroke-width="7" stroke-linecap="round" />
+                
+                <!-- Inner Tick Marks -->
+                <path d="M 23 45 L 26 43 M 31 34 L 33 33 M 42 27 L 43 25 M 50 25 L 50 22 M 58 27 L 57 25 M 69 34 L 67 33 M 77 45 L 74 43" stroke="rgba(255,255,255,0.3)" stroke-width="0.8" />
+                
+                <!-- Center green/teal pivot point -->
+                <circle cx="50" cy="50" r="5" fill="#10B981" />
+                <circle cx="50" cy="50" r="2.5" fill="#1A202C" />
+                
+                <!-- Indicator needle pointing to SOH -->
+                <line id="gauge-needle" x1="50" y1="50" x2="50" y2="18" stroke="#10B981" stroke-width="2.5" stroke-linecap="round" style="transform-origin: 50px 50px; transform: rotate(-90deg); transition: transform 1.6s cubic-bezier(0.19, 1, 0.22, 1);" />
               </svg>
               
-              <div class="absolute bottom-0 text-center">
-                <span class="text-3xl font-extrabold font-mono tracking-tight text-[var(--ink)]" id="detail-soh-val">0.0%</span>
+              <!-- SOH Score labels -->
+              <div class="absolute bottom-1 flex flex-col items-center">
+                <span class="text-3xl font-extrabold font-mono tracking-tight text-[#10B981]" id="detail-soh-val">0.0%</span>
+                <span class="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-faint)] mt-1">State of Health (SOH) Score</span>
               </div>
-            </div>
-            
-            <div class="mt-4 text-center">
-              <span class="px-3 py-1 text-[10px] font-bold rounded-full uppercase" id="detail-status-badge">HEALTHY</span>
-              <p class="text-[11px] text-[var(--ink-faint)] mt-1.5" id="detail-status-desc"></p>
             </div>
           </div>
           
-          <!-- Right column: Details and Actions -->
-          <div class="md:col-span-7 flex flex-col justify-between h-full py-1">
+          <!-- Right column: Metrics & Capacity Degradation Trend -->
+          <div class="md:col-span-7 flex flex-col justify-between">
             <div>
-              <h4 class="font-bold text-sm mb-3 flex items-center gap-2">
-                <i data-lucide="bar-chart-2" class="w-4 h-4 text-[var(--accent)]"></i> AI Analysis Summary
-              </h4>
-              
+              <!-- Key Metrics -->
               <div class="grid grid-cols-2 gap-4 mb-4">
                 <div class="p-3 bg-[rgba(255,255,255,0.02)] rounded-lg border border-[var(--border)]">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-faint)] block mb-1">RUL Prediction</span>
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-faint)] block mb-0.5">RUL Prediction</span>
                   <span class="font-mono text-base font-bold text-[var(--ink)]" id="detail-rul-val">0 cycles</span>
                 </div>
                 <div class="p-3 bg-[rgba(255,255,255,0.02)] rounded-lg border border-[var(--border)]">
-                  <span class="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-faint)] block mb-1">Charging Eff.</span>
+                  <span class="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-faint)] block mb-0.5">Charging Eff.</span>
                   <span class="font-mono text-base font-bold text-[var(--ink)]" id="detail-eff-val">0.0%</span>
                 </div>
               </div>
               
-              <div class="p-3.5 bg-[rgba(255,255,255,0.02)] rounded-lg border border-[var(--border)] mb-5">
-                <span class="text-[10px] uppercase font-bold tracking-wider text-[var(--ink-faint)] block mb-1">Inference Diagnostics</span>
-                <p class="text-xs text-[var(--ink-soft)]" id="detail-inference-notes"></p>
+              <!-- Capacity Degradation Chart Container -->
+              <div class="p-4 bg-[rgba(255,255,255,0.02)] rounded-xl border border-[var(--border)] mb-4">
+                <p class="text-[9px] font-bold uppercase tracking-wider text-[var(--ink-soft)] text-center mb-2">Capacity Degradation Trend</p>
+                <div class="h-40 relative">
+                  <canvas id="chart-manual-degradation"></canvas>
+                </div>
+                
+                <!-- SOH Formula -->
+                <div class="mt-3 pt-2.5 border-t border-[rgba(255,255,255,0.05)] text-center">
+                  <p class="font-mono text-[9.5px] text-[var(--ink-faint)] select-none">
+                    SOH (%) = <span class="border-b border-[var(--ink-faint)] pb-0.5 px-1.5">Current Capacity</span> <span class="mx-1">/</span> Rated Capacity &times; 100
+                  </p>
+                </div>
               </div>
             </div>
             

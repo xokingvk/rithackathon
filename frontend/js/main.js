@@ -234,6 +234,86 @@ function initCsvUpload() {
 }
 
 /* ---- Manual BMS Form ---- */
+let manualDegradationChart = null;
+
+function renderManualDegradationChart(sohValue, cycleCount) {
+  const canvas = document.getElementById('chart-manual-degradation');
+  if (!canvas) return;
+  
+  if (manualDegradationChart) {
+    manualDegradationChart.destroy();
+  }
+  
+  const ctx = canvas.getContext('2d');
+  
+  // Calculate historical points representing SOH fade from 150Ah down to current capacity
+  const endCycles = Math.max(120, cycleCount + 40);
+  const labels = [];
+  const capacityData = [];
+  const steps = 6;
+  const stepSize = endCycles / steps;
+  
+  const ratedCapacity = 150.0;
+  const currentCapacity = ratedCapacity * (sohValue / 100.0);
+  
+  for (let i = 0; i <= steps; i++) {
+    const cyc = Math.round(i * stepSize);
+    labels.push(cyc);
+    
+    const factor = cyc / Math.max(1, cycleCount);
+    let cap = ratedCapacity - (ratedCapacity - currentCapacity) * Math.min(1.2, factor);
+    capacityData.push(parseFloat(Math.max(0, cap).toFixed(1)));
+  }
+  
+  const grad = ctx.createLinearGradient(0, 0, 0, 120);
+  grad.addColorStop(0, 'rgba(16,185,129,0.18)');
+  grad.addColorStop(1, 'rgba(16,185,129,0)');
+  
+  manualDegradationChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels,
+      datasets: [{
+        label: 'Max Capacity (Ah)',
+        data: capacityData,
+        borderColor: '#10B981',
+        backgroundColor: grad,
+        fill: true,
+        tension: 0.35,
+        pointRadius: 4.5,
+        pointBackgroundColor: '#10B981',
+        borderWidth: 2
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: ctx => ` Capacity: ${ctx.parsed.y} Ah (${Math.round(ctx.parsed.y / ratedCapacity * 100)}% SOH)`
+          }
+        }
+      },
+      scales: {
+        x: {
+          title: { display: true, text: 'Cycle Count', color: '#8A96AF', font: { size: 9, weight: 'bold' } },
+          grid: { display: false },
+          ticks: { color: '#8A96AF', font: { size: 9 } }
+        },
+        y: {
+          title: { display: true, text: 'Max Capacity (Ah)', color: '#8A96AF', font: { size: 9, weight: 'bold' } },
+          grid: { color: 'rgba(255,255,255,0.05)' },
+          min: 0,
+          max: 160,
+          ticks: { color: '#8A96AF', font: { size: 9 }, stepSize: 40 }
+        }
+      }
+    }
+  });
+}
+
 function initManualForm() {
   const form   = document.getElementById('manual-form');
   const result = document.getElementById('manual-result');
@@ -255,49 +335,29 @@ function initManualForm() {
       const data = await api.submitManualEntry(payload);
       currentBatteryId = data.battery_id;
       
-      // Update result status message
+      // Update status line
       result.innerHTML = `<span class="text-[var(--volt-high)] font-semibold">✓ Recorded.</span> Diagnostics generated.`;
       
-      // Populate detail panel elements
+      // Populate details
       const sohVal = document.getElementById('detail-soh-val');
       const rulVal = document.getElementById('detail-rul-val');
       const effVal = document.getElementById('detail-eff-val');
-      const statusBadge = document.getElementById('detail-status-badge');
-      const statusDesc = document.getElementById('detail-status-desc');
       const needle = document.getElementById('gauge-needle');
-      const notes = document.getElementById('detail-inference-notes');
       
       if (sohVal) sohVal.textContent = `${data.soh}%`;
       if (rulVal) rulVal.textContent = `${data.rul_cycles} cycles`;
       if (effVal) effVal.textContent = `${data.charging_efficiency}%`;
       
-      // Rotate gauge needle (SOH range 0-100 maps to -90 to +90 degrees)
+      // Rotate needle (SOH range 0-100 maps to -90 to +90 degrees)
       if (needle) {
         const rotationAngle = -90 + (data.soh / 100) * 180;
         needle.style.transform = `rotate(${rotationAngle}deg)`;
       }
       
-      // Status classifications and text updates
-      if (statusBadge) {
-        statusBadge.textContent = data.status;
-        statusBadge.className = `px-3 py-1 text-[10px] font-bold rounded-full uppercase `;
-        
-        if (data.status === 'healthy') {
-          statusBadge.classList.add('bg-green-500/15', 'text-green-400');
-          if (statusDesc) statusDesc.textContent = 'Excellent state of health. Battery is functioning within parameters.';
-          if (notes) notes.textContent = `The ML models indicate high capacity retention and low fade rates. Recommended for normal field operations.`;
-        } else if (data.status === 'watch') {
-          statusBadge.classList.add('bg-amber-500/15', 'text-amber-400');
-          if (statusDesc) statusDesc.textContent = 'Moderate degradation detected. Monitor pack parameters closely.';
-          if (notes) notes.textContent = `Slight deviation in charge capacity fade detected. Keep charging temperatures under 35°C to preserve lifetime cycles.`;
-        } else {
-          statusBadge.classList.add('bg-red-500/15', 'text-red-400');
-          if (statusDesc) statusDesc.textContent = 'Critical health alert! Heavy degradation and potential anomaly.';
-          if (notes) notes.textContent = `At-risk alert triggered by Isolation Forest (anomaly score exceeded threshold). Immediate field replacement is highly recommended.`;
-        }
-      }
+      // Render degradation trend chart matching reference diagram
+      renderManualDegradationChart(data.soh, payload.cycle_count);
       
-      // Show details block
+      // Show details
       detailCard?.classList.remove('hidden');
       confettiBurst();
       showToast(`Diagnostics generated for ${data.battery_id}!`, 'success');
