@@ -92,16 +92,16 @@ def generate_health_report_pdf(
     # ---- Custom styles ----
     h1 = ParagraphStyle(
         "VQ_H1", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=20, textColor=INK,
+        fontName="Helvetica-Bold", fontSize=20, leading=24, textColor=INK,
         spaceAfter=4,
     )
     subtitle = ParagraphStyle(
         "VQ_Sub", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=10, textColor=INK_SOFT,
+        fontName="Helvetica", fontSize=10, leading=13, textColor=INK_SOFT,
     )
     section_label = ParagraphStyle(
         "VQ_Label", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=8, textColor=INK_FAINT,
+        fontName="Helvetica-Bold", fontSize=8, leading=10, textColor=INK_FAINT,
         spaceBefore=16, spaceAfter=6, letterSpacing=1,
     )
     body = ParagraphStyle(
@@ -111,12 +111,12 @@ def generate_health_report_pdf(
     )
     rec_bold = ParagraphStyle(
         "VQ_RecBold", parent=styles["Normal"],
-        fontName="Helvetica-Bold", fontSize=10, textColor=INK,
+        fontName="Helvetica-Bold", fontSize=10, leading=14, textColor=INK,
         spaceBefore=4,
     )
     footer_style = ParagraphStyle(
         "VQ_Footer", parent=styles["Normal"],
-        fontName="Helvetica", fontSize=7.5, textColor=INK_FAINT,
+        fontName="Helvetica", fontSize=7.5, leading=10, textColor=INK_FAINT,
         alignment=1,  # centre
     )
 
